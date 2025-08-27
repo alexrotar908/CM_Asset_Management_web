@@ -1,0 +1,192 @@
+/* General */
+.home-container {
+  font-family: Arial, sans-serif;
+}
+
+/* HERO */
+.hero {
+  background-image: url('/images_home/mansion.png');
+  background-size: cover;
+  background-position: center;
+  height: 80vh;
+  display: flex;
+  justify-content: center;
+  align-items: center;
+  text-align: center;
+}
+
+.hero-content {
+  background-color: rgba(0,0,0,0.5);
+  color: white;
+  padding: 20px;
+  border-radius: 8px;
+}
+
+/* SEARCH SECTION */
+.search-section {
+  background-color: white;
+  margin: -40px auto 20px auto;
+  padding: 20px;
+  max-width: 1200px;
+  border-radius: 12px;
+  box-shadow: 0 4px 12px rgba(0,0,0,0.1);
+}
+
+.search-form {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 10px;
+  align-items: center;
+  justify-content: space-between;
+}
+
+.search-form select,
+.search-form button {
+  padding: 10px;
+  border: 1px solid #ccc;
+  border-radius: 8px;
+  font-size: 14px;
+  min-width: 130px;
+}
+
+.search-form .type-select {
+  flex: 1;
+  min-width: 200px;
+}
+
+.search-form button {
+  background-color: #001f3f;
+  color: white;
+  border: none;
+  cursor: pointer;
+}
+
+.search-form button:hover {
+  background-color: #004080;
+}
+
+/* CUSTOM MENU IN TYPE SELECT */
+.custom-menu-search {
+  padding: 8px;
+  border-bottom: 1px solid #eee;
+  background-color: white;
+}
+
+.custom-menu-input {
+  width: 100%;
+  padding: 8px 12px;
+  font-size: 14px;
+  border: 1px solid #ccc;
+  border-radius: 4px;
+  margin-bottom: 8px;
+  box-sizing: border-box;
+}
+
+.custom-menu-buttons {
+  display: flex;
+  justify-content: center;
+  gap: 8px;
+  padding: 8px;
+  background-color: white;
+}
+
+.custom-menu-buttons button {
+  background-color: #001f3f;
+  color: white;
+  border: none;
+  padding: 6px 12px;
+  border-radius: 4px;
+  cursor: pointer;
+  font-size: 12px;
+  min-width: 100px;
+  text-align: center;
+}
+
+.custom-menu-buttons button:hover {
+  background-color: #004080;
+}
+
+/* MENU OPTION STYLE */
+.css-1nmdiq5-menu {
+  font-size: 14px;
+}
+
+/* PROPERTIES SECTION */
+.properties-section {
+  text-align: center;
+  padding: 40px 20px;
+}
+
+.properties-grid {
+  display: grid;
+  grid-template-columns: repeat(auto-fit, minmax(250px, 1fr));
+  gap: 20px;
+  margin-top: 20px;
+}
+
+.property-card {
+  position: relative;
+  overflow: hidden;
+  border-radius: 8px;
+  text-decoration: none;
+  color: inherit;
+  cursor: pointer;
+}
+
+.property-card img {
+  width: 100%;
+  height: 250px;
+  object-fit: cover;
+  border-radius: 8px;
+}
+
+.property-info {
+  position: absolute;
+  bottom: 10px;
+  left: 10px;
+  color: white;
+}
+
+.property-info button {
+  margin-top: 8px;
+  background: white;
+  color: black;
+  border: none;
+  padding: 5px 10px;
+  border-radius: 4px;
+  cursor: pointer;
+}
+
+.welcome-section {
+  text-align: center;
+  padding: 40px 20px;
+}
+
+.welcome-section img {
+  max-width: 100%;
+  border-radius: 8px;
+  margin-top: 20px;
+}
+
+.why-choose-us {
+  background-color: #001f3f;
+  color: white;
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  padding: 40px 20px;
+}
+
+.why-item {
+  max-width: 300px;
+  text-align: center;
+  margin-bottom: 20px;
+}
+
+@media(min-width: 768px) {
+  .why-choose-us {
+    flex-direction: row;
+    justify-content: center;
+    gap: 40px;
+  }
+}

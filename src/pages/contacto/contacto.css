@@ -1,0 +1,154 @@
+.contacto-page {
+  background-color: #f9f9f9;
+}
+.contacto-container {
+  padding: 100px;
+  background-color: #ffffff;
+  color: #000000;
+}
+
+h2 {
+  font-size: 32px;
+  margin-bottom: 20px;
+}
+
+.form-info-wrapper {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 40px;
+}
+
+.contact-form {
+  flex: 1;
+  min-width: 300px;
+  display: flex;
+  flex-direction: column;
+  gap: 15px;
+}
+
+.form-row {
+  display: flex;
+  gap: 15px;
+}
+
+.contact-form input,
+.contact-form textarea {
+  padding: 12px;
+  font-size: 14px;
+  border: 1px solid #ccc;
+  border-radius: 4px;
+  width: 100%;
+}
+
+textarea {
+  resize: vertical;
+  height: 100px;
+}
+
+.gdpr-checkbox {
+  display: flex;
+  align-items: center;
+  gap: 10px;
+  font-size: 13px;
+}
+
+.contact-form button {
+  background-color: #001f3f;
+  color: white;
+  padding: 12px;
+  border: none;
+  font-size: 16px;
+  cursor: pointer;
+  border-radius: 4px;
+  transition: background-color 0.3s ease;
+}
+
+.contact-form button:hover {
+  background-color: #8b0000;
+}
+
+.contact-info {
+  flex: 1;
+  min-width: 300px;
+  font-size: 15px;
+  display: flex;
+  flex-direction: column;
+  gap: 10px;
+}
+
+.map-wrapper {
+  margin-top: 50px;
+}
+
+.map-wrapper h4 {
+  margin: 20px 0 10px;
+  font-size: 18px;
+}
+
+
+/* Footer a ancho completo */
+.contacto-footer {
+  background: #0d2c52;
+  color: white;
+  padding: 3rem 6rem 0 6rem;
+}
+
+.footer-top {
+  display: flex;
+  justify-content: space-between;
+  flex-wrap: wrap;
+  border-bottom: 1px solid #444;
+  padding-bottom: 2rem;
+}
+
+.footer-location h4,
+.footer-links h4 {
+  font-size: 1.2rem;
+  margin-bottom: 1rem;
+}
+
+.footer-location p,
+.footer-links ul li a {
+  color: #ddd;
+  font-size: 0.95rem;
+  margin: 0.3rem 0;
+  text-decoration: none;
+}
+
+.footer-links ul {
+  list-style: none;
+  padding: 0;
+}
+
+.footer-links ul li {
+  margin: 0.3rem 0;
+}
+
+.footer-links a:hover {
+  text-decoration: underline;
+}
+
+/* Parte inferior */
+.footer-bottom {
+  background: black;
+  color: white;
+  text-align: center;
+  padding: 2rem 0;
+}
+
+.footer-bottom .footer-logo {
+  height: 40px;
+  margin-bottom: 1rem;
+}
+
+.social-icons {
+  display: flex;
+  justify-content: center;
+  gap: 1.5rem;
+  margin: 1rem 0;
+}
+
+.social-icons i {
+  font-size: 1.2rem;
+  color: white;
+}

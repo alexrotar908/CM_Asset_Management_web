@@ -1,0 +1,98 @@
+.navbar {
+  background: white;
+  box-shadow: 0 2px 4px rgba(0,0,0,0.1);
+  padding: 0.75rem 1rem;  /* Reducido de 2rem a 1rem */
+  position: fixed;
+  top: 0;
+  width: 100%;
+  z-index: 50;
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+  box-sizing: border-box;
+  transition: background-color 0.3s ease, box-shadow 0.3s ease;  /* Para que el padding no desborde el width */
+}
+
+.logo {
+  height: 40px;
+}
+
+.nav-links {
+  display: flex;
+  align-items: center;
+  flex-wrap: wrap; /* Para que se adapten en pantallas más pequeñas */
+}
+
+.login-button:hover {
+  text-decoration: underline;
+  color: #1d4ed8;
+}
+
+.nav-links a {
+  margin: 0 0.5rem;  /* Reducido de 1rem a 0.5rem */
+  color: #374151;
+  text-decoration: none;
+  font-weight: 500;
+}
+
+.nav-links a:hover {
+  text-decoration: underline;
+}
+
+.language-selector {
+  margin: 0 0.5rem;  /* Reducido */
+}
+
+.language-selector button {
+  background: none;
+  border: none;
+  color: #6b7280;
+  cursor: pointer;
+  margin: 0 0.25rem;
+}
+
+.phone {
+  color: #6b7280;
+  font-size: 0.85rem;
+  margin-left: 0.5rem; /* Reducido para ahorrar espacio */
+}
+
+.user-menu-container {
+  position: relative;
+  display: inline-block;
+  margin-left: 12px;
+  cursor: pointer;
+}
+
+.user-icon {
+  width: 26px;
+  height: 26px;
+  filter: brightness(0) saturate(100%) invert(15%) sepia(18%) saturate(1346%) hue-rotate(179deg) brightness(97%) contrast(89%);
+}
+
+.user-menu-dropdown {
+  position: absolute;
+  top: 35px;
+  right: 0;
+  background-color: white;
+  border: 1px solid #ddd;
+  border-radius: 4px;
+  min-width: 120px;
+  box-shadow: 0px 2px 6px rgba(0, 0, 0, 0.15);
+  z-index: 100;
+}
+
+.user-menu-dropdown button {
+  width: 100%;
+  padding: 10px;
+  background: none;
+  border: none;
+  text-align: left;
+  cursor: pointer;
+  font-weight: bold;
+  color: #dc2626;
+}
+
+.user-menu-dropdown button:hover {
+  background-color: #f8f8f8;
+}

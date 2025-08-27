@@ -1,0 +1,373 @@
+.property-detail.container { 
+  max-width: 1200px; 
+  margin: 0 auto; 
+  padding: 24px; 
+  font-family: 'Arial', sans-serif;
+  color: #333;
+  background: #fff;
+  padding-top: 100px;
+}
+
+/* Breadcrumbs */
+.breadcrumbs { 
+  font-size: 14px; 
+  margin-bottom: 16px; 
+  display: flex; 
+  gap: 6px; 
+  align-items: center; 
+  color: #666; /* gris por defecto */
+}
+
+.breadcrumbs a {
+  color: #0056b3; /* azul estilo link */
+  text-decoration: none;
+  font-weight: 500;
+}
+
+.breadcrumbs a:hover {
+  text-decoration: underline; /* subrayado al pasar el ratón */
+}
+
+.breadcrumbs span {
+  color: #666; /* separadores en gris */
+}
+
+.breadcrumbs .current {
+  color: #000; /* último breadcrumb en negro */
+  font-weight: 600;
+  pointer-events: none; /* no clickable */
+}
+
+/* Header */
+.pd-header { 
+  display:flex; 
+  align-items:flex-start; 
+  justify-content:space-between; 
+  gap:16px; 
+}
+.pd-header h1 { 
+  margin: 12px 0; 
+  font-size: 1.8rem;
+  color: #0d2c52;
+}
+.pd-header-right { 
+  display:flex; 
+  align-items:center; 
+  gap:16px; 
+}
+.pill { 
+  padding: 4px 10px; 
+  border-radius: 999px; 
+  font-size: 12px; 
+  font-weight: 600; 
+  background:#0d2c52; 
+  color:#fff; 
+}
+.pill-buy { background: #0d2c52; } 
+.pill-rent { background:#2a9d8f; } 
+.pill-rented { background:#999; }
+.pd-price { 
+  font-size: 28px; 
+  font-weight: 700; 
+  color:#0d2c52;
+}
+.pd-actions button { 
+  border:1px solid #ccc; 
+  background:#fff; 
+  border-radius:8px; 
+  padding:6px 10px; 
+  cursor: pointer;
+}
+
+/* Subdireccion */
+.pd-subaddress { 
+  color:#666; 
+  margin-top: 6px; 
+  font-size: 14px;
+}
+
+/* Galería */
+.pd-gallery { 
+  display:grid; 
+  grid-template-columns: 2fr 1fr; 
+  gap: 16px; 
+  margin: 20px 0; 
+}
+.pd-gallery-main img { 
+  width:100%; 
+  height:520px; 
+  object-fit:cover; 
+  border-radius:12px; 
+}
+.pd-gallery-thumbs { 
+  display:grid; 
+  grid-template-columns:1fr 1fr; 
+  gap:12px; 
+}
+.pd-gallery-thumbs img { 
+  width:100%; 
+  height:250px; 
+  object-fit:cover; 
+  border-radius:12px; 
+}
+.pd-more { 
+  border:1px solid #ccc; 
+  background:#fff; 
+  border-radius:12px; 
+  padding: 8px;
+}
+
+/* Tabs */
+.pd-tabs { 
+  display:flex; 
+  gap:24px; 
+  border-bottom:1px solid #eee; 
+  margin-top: 20px; 
+}
+.pd-tab { 
+  padding:12px 4px; 
+  background:none; 
+  border:none; 
+  cursor:pointer; 
+  color:#555; 
+  font-weight:600; 
+}
+.pd-tab.active { 
+  color:#0d2c52; 
+  border-bottom:2px solid #0d2c52; 
+}
+
+/* Secciones */
+.pd-section { 
+  padding: 32px 0; 
+}
+
+/* Quick Facts */
+.pd-quickfacts { 
+  display:grid; 
+  grid-template-columns: repeat(5, 1fr); 
+  gap:16px; 
+  margin-bottom:16px; 
+}
+.pd-quickfacts div { 
+  background:#fafafa; 
+  border:1px solid #eee; 
+  border-radius:12px; 
+  padding:12px; 
+  text-align:center; 
+}
+.pd-quickfacts span { 
+  display:block; 
+  color:#666; 
+  font-size:12px; 
+  margin-top:4px; 
+}
+
+/* Details card */
+.pd-details-card { 
+  display:grid; 
+  grid-template-columns: 1fr 1fr; 
+  gap:12px; 
+  border:1px solid #e5e5e5; 
+  border-radius:12px; 
+  padding:16px; 
+  max-width:820px;
+}
+.pd-details-card div { 
+  display:flex; 
+  justify-content:space-between; 
+  padding:10px 6px; 
+  border-bottom:1px solid #f0f0f0; 
+}
+.pd-details-card div:nth-last-child(-n+2){ 
+  border-bottom:none; 
+}
+
+/* Features */
+.pd-features { 
+  display:grid; 
+  grid-template-columns: repeat(3, 1fr); 
+  gap:8px 24px; 
+  color:#444;
+}
+
+/* Address */
+.pd-address-grid { 
+  display:grid; 
+  grid-template-columns: repeat(4, 1fr); 
+  gap:12px; 
+  max-width:880px; 
+}
+.pd-address-grid span { 
+  color:#777; 
+  display:block; 
+  font-size:12px; 
+}
+.pd-map { margin-top:16px; }
+.pd-map.placeholder { 
+  height:380px; 
+  background:#f6f6f6; 
+  border-radius:12px; 
+  display:flex; 
+  align-items:center; 
+  justify-content:center; 
+  color:#888; 
+}
+
+/* Mortgage */
+.pd-mortgage { 
+  display:grid; 
+  grid-template-columns: 1.2fr 1fr; 
+  gap:24px; 
+  max-width:980px; 
+}
+.pd-mortgage-big { 
+  display:flex; 
+  gap:24px; 
+  align-items:center; 
+}
+.pd-mortgage-ring { 
+  width:260px; 
+  height:260px; 
+  border-radius:50%; 
+  border:18px solid #0d2c52; 
+  display:flex; 
+  align-items:center; 
+  justify-content:center; 
+}
+.pd-mortgage-value { 
+  text-align:center; 
+  font-size:24px; 
+  font-weight:700; 
+  color:#0d2c52;
+}
+.pd-mortgage-value small { 
+  display:block; 
+  font-size:12px; 
+  color:#888; 
+}
+.pd-mortgage-breakdown { 
+  list-style:none; 
+  padding:0; 
+  margin:0; 
+}
+.pd-mortgage-breakdown li { 
+  display:flex; 
+  justify-content:space-between; 
+  gap:16px; 
+  padding:6px 0; 
+}
+.pd-mortgage-form label { 
+  display:block; 
+  font-size:14px; 
+  color:#444; 
+  margin-bottom:12px; 
+}
+.pd-mortgage-form input { 
+  width:100%; 
+  padding:10px; 
+  border:1px solid #ccc; 
+  border-radius:10px; 
+}
+
+/* Similar ads */
+.pd-similar-grid { 
+  display:grid; 
+  grid-template-columns: repeat(2, 1fr); 
+  gap:18px; 
+}
+.pd-similar-card { 
+  display:block; 
+  border:1px solid #eee; 
+  border-radius:12px; 
+  overflow:hidden; 
+  background:#fff; 
+  text-decoration:none; 
+  color:inherit; 
+  transition: transform 0.2s ease;
+}
+.pd-similar-card:hover { 
+  transform: translateY(-4px); 
+  box-shadow: 0 4px 12px rgba(0,0,0,0.08);
+}
+.pd-similar-card .img { position:relative; }
+.pd-similar-card img { width:100%; height:180px; object-fit:cover; }
+.pd-similar-card .pill { position:absolute; top:10px; right:10px; }
+.pd-similar-card .body { padding:12px; }
+.pd-similar-card h4 { margin:0 0 6px; font-size:16px; color:#0d2c52; }
+.pd-similar-card .meta { display:flex; gap:12px; color:#666; font-size:13px; }
+.pd-similar-card .price { margin-top:8px; font-weight:700; color:#0d2c52; }
+
+/* Prev/Next */
+.pd-prevnext { 
+  display:flex; 
+  justify-content:space-between; 
+  margin: 28px 0; 
+}
+
+/* Footer */
+.property-footer {
+  background: #0d2c52;
+  color: white;
+  padding: 3rem 6rem 0 6rem;
+}
+
+.footer-top {
+  display: flex;
+  justify-content: space-between;
+  flex-wrap: wrap;
+  border-bottom: 1px solid #444;
+  padding-bottom: 2rem;
+}
+
+.footer-location h4,
+.footer-links h4 {
+  font-size: 1.2rem;
+  margin-bottom: 1rem;
+}
+
+.footer-location p,
+.footer-links ul li a {
+  color: #ddd;
+  font-size: 0.95rem;
+  margin: 0.3rem 0;
+  text-decoration: none;
+}
+
+.footer-links ul {
+  list-style: none;
+  padding: 0;
+}
+
+.footer-links ul li {
+  margin: 0.3rem 0;
+}
+
+.footer-links a:hover {
+  text-decoration: underline;
+}
+
+/* Parte inferior */
+.footer-bottom {
+  background: black;
+  color: white;
+  text-align: center;
+  padding: 2rem 0;
+}
+
+.footer-bottom .footer-logo {
+  height: 40px;
+  margin-bottom: 1rem;
+}
+
+.social-icons {
+  display: flex;
+  justify-content: center;
+  gap: 1.5rem;
+  margin: 1rem 0;
+}
+
+.social-icons i {
+  font-size: 1.2rem;
+  color: white;
+}

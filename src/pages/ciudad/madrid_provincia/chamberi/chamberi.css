@@ -1,0 +1,272 @@
+/* Página contenedora sin padding lateral */
+.chamberi-page {
+  background-color: #f9f9f9;
+}
+
+/* Contenido con padding central */
+.chamberi-content {
+  padding: 6rem;
+}
+
+.breadcrumb {
+  display: flex;
+  align-items: center;
+  font-size: 0.9rem;
+  color: #666;
+  margin-bottom: 1.5rem;
+}
+
+.breadcrumb-link {
+  color: #004080;
+  text-decoration: none;
+  font-weight: 500;
+}
+
+.breadcrumb-link:hover {
+  text-decoration: underline;
+}
+
+.breadcrumb-separator {
+  margin: 0 0.5rem;
+  color: #999;
+}
+
+.breadcrumb-current {
+  color: #333;
+  font-weight: 500;
+}
+
+/* Header de la página */
+.chamberi-header {
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+  margin-bottom: 1rem;
+}
+
+.chamberi-subheader {
+  display: flex;
+  align-items: center;
+  gap: 1rem;
+  font-weight: 500;
+}
+
+.sort-container {
+  font-size: 0.95rem;
+  position: relative;
+}
+
+.sort-container select {
+  padding: 4px 8px;
+  font-size: 0.9rem;
+  border-radius: 4px;
+  border: 1px solid #ccc;
+  background: white;
+  cursor: pointer;
+}
+
+/* Grid de tarjetas */
+.chamberi-grid {
+  display: grid;
+  grid-template-columns: repeat(auto-fill, minmax(300px, 1fr));
+  gap: 1.5rem;
+}
+
+.chamberi-card {
+  border: 1px solid #ccc;
+  border-radius: 8px;
+  overflow: hidden;
+  background: white;
+  box-shadow: 0 2px 8px rgba(0,0,0,0.05);
+  transition: transform 0.2s ease;
+}
+
+.chamberi-card:hover {
+  transform: translateY(-5px);
+}
+
+.chamberi-card.clickable {
+   cursor: pointer; 
+}
+.chamberi-card h3 a { 
+  color: inherit; text-decoration: none; 
+}
+.chamberi-card h3 a:hover { 
+  text-decoration: underline; 
+}
+
+.image-container {
+  position: relative;
+  width: 100%;
+  height: 200px; /* Altura fija para uniformidad */
+  overflow: hidden;
+}
+
+.image-container img {
+  width: 100%;
+  height: 100%;
+  object-fit: cover; /* Mantiene proporción y recorta lo necesario */
+  display: block;
+}
+
+
+.status-label {
+  position: absolute;
+  top: 10px;
+  right: 10px;
+  background: #2c5b8a;
+  color: white;
+  padding: 4px 10px;
+  font-size: 0.75rem;
+  border-radius: 3px;
+  text-transform: uppercase;
+}
+
+.status-label.rented {
+  background: #6c757d;
+}
+
+.info-container {
+  padding: 1rem;
+}
+
+.info-container h3 {
+  font-size: 1.1rem;
+  margin-bottom: 0.5rem;
+}
+
+.price {
+  color: #2c5b8a;
+  font-weight: bold;
+  margin-bottom: 0.5rem;
+}
+
+.icons {
+  display: flex;
+  justify-content: space-between;
+  font-size: 0.9rem;
+  color: #444;
+}
+
+/* Botones del carrusel */
+.carousel-button {
+  position: absolute;
+  top: 50%;
+  transform: translateY(-50%);
+  background: rgba(0, 0, 0, 0.4);
+  border: none;
+  color: white;
+  font-size: 1.5rem;
+  padding: 6px 12px;
+  cursor: pointer;
+  z-index: 2;
+  border-radius: 50%;
+  transition: background 0.3s ease;
+}
+
+.carousel-button:hover {
+  background: rgba(0, 0, 0, 0.7);
+}
+
+.carousel-button.left {
+  left: 10px;
+}
+
+.carousel-button.right {
+  right: 10px;
+}
+
+
+/* Paginación */
+.pagination {
+  margin: 30px 0;
+  display: flex;
+  justify-content: center;
+  gap: 10px;
+}
+
+.pagination button {
+  padding: 6px 12px;
+  border: 1px solid #ccc;
+  background: white;
+  cursor: pointer;
+  border-radius: 4px;
+  transition: background 0.2s ease;
+}
+
+.pagination button:hover {
+  background: #ddd;
+}
+
+.pagination button.active {
+  background-color: #004080;
+  color: white;
+  border-color: #004080;
+}
+
+/* Footer a ancho completo */
+.chamberi-footer {
+  background: #0d2c52;
+  color: white;
+  padding: 3rem 6rem 0 6rem;
+}
+
+.footer-top {
+  display: flex;
+  justify-content: space-between;
+  flex-wrap: wrap;
+  border-bottom: 1px solid #444;
+  padding-bottom: 2rem;
+}
+
+.footer-location h4,
+.footer-links h4 {
+  font-size: 1.2rem;
+  margin-bottom: 1rem;
+}
+
+.footer-location p,
+.footer-links ul li a {
+  color: #ddd;
+  font-size: 0.95rem;
+  margin: 0.3rem 0;
+  text-decoration: none;
+}
+
+.footer-links ul {
+  list-style: none;
+  padding: 0;
+}
+
+.footer-links ul li {
+  margin: 0.3rem 0;
+}
+
+.footer-links a:hover {
+  text-decoration: underline;
+}
+
+/* Parte inferior */
+.footer-bottom {
+  background: black;
+  color: white;
+  text-align: center;
+  padding: 2rem 0;
+}
+
+.footer-bottom .footer-logo {
+  height: 40px;
+  margin-bottom: 1rem;
+}
+
+.social-icons {
+  display: flex;
+  justify-content: center;
+  gap: 1.5rem;
+  margin: 1rem 0;
+}
+
+.social-icons i {
+  font-size: 1.2rem;
+  color: white;
+}
