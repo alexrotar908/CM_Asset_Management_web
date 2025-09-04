@@ -8,7 +8,6 @@ import Contacto from '../pages/contacto/contacto';
 // Importa cada zona
 import Dubai from '../pages/zona/dubai/dubai';
 import DubaiCity from '../pages/zona/dubai/dubaiCity/dubaiCity';
-import AlAin from '../pages/zona/dubai/alAin/alAin';
 import Romania from '../pages/zona/romania/romania';
 import Bucharest from '../pages/zona/romania/bucharest/bucharest';
 import ClujNapoca from '../pages/zona/romania/clujNapoca/clujNapoca';
@@ -19,6 +18,8 @@ import ResetPassword from '../auth/resetPassword';
 import TipoRouter from './TipoRouter';
 import ZonaRouter from './ZonaRoutes';
 import PropertyDataDetails from '../pages/properties/propertyDetail/propertyDataDetail';
+import Madrid from '../pages/zona/espanya/madrid/madrid';
+import Malaga from '../pages/zona/espanya/malaga/malaga';
 
 export default function AppRoutes() {
   return (
@@ -32,9 +33,10 @@ export default function AppRoutes() {
 
         {/* Rutas de zonas */}
         <Route path="/espanya" element={<Espanya />} />
+        <Route path="/espanya/madrid" element={<Madrid />} />
+        <Route path="/espanya/malaga" element={<Malaga />} />
         <Route path="/dubai" element={<Dubai />} />
         <Route path="/dubaiCity" element={<DubaiCity />} />
-        <Route path="/alAin" element={<AlAin />} />
         <Route path="/romania" element={<Romania />} />
         <Route path="/clujNapoca" element={<ClujNapoca />} />
         <Route path="/bucharest" element={<Bucharest />} />

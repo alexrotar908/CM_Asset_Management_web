@@ -1,0 +1,5 @@
+/* src/pages/espanya/malaga/malaga.css */
+@import '../espanya.css';
+
+/* Overrides futuros específicos de Málaga si hicieran falta.
+   El hero usa la imagen mediante style inline en el TSX. */

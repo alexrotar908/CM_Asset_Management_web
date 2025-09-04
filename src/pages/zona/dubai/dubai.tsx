@@ -1,14 +1,88 @@
 import './dubai.css';
 import Select, { components } from 'react-select';
+import { Link } from 'react-router-dom';
+import { useState } from 'react';
 import type { OptionType } from './dubaiData';
 import { useDubaiLogic } from './dubaiData';
+
+type CardProp = {
+  prop: {
+    id: string;
+    title: string;
+    price: string;
+    image: string;
+    bedrooms: number;
+    bathrooms: number;
+    size: number;
+  };
+  images: string[];
+};
+
+function PropertyCard({ prop, images }: CardProp) {
+  const imgs = images.length ? images : [prop.image];
+  const [idx, setIdx] = useState(0);
+
+  const prev: React.MouseEventHandler<HTMLButtonElement> = (e) => {
+    e.preventDefault();
+    e.stopPropagation();
+    setIdx((i) => (i - 1 + imgs.length) % imgs.length);
+  };
+  const next: React.MouseEventHandler<HTMLButtonElement> = (e) => {
+    e.preventDefault();
+    e.stopPropagation();
+    setIdx((i) => (i + 1) % imgs.length);
+  };
+  const jump = (i: number) => (e: React.MouseEvent) => {
+    e.preventDefault();
+    e.stopPropagation();
+    setIdx(i);
+  };
+
+  return (
+    <div className="property-item">
+      {/* Ruta unificada con España */}
+      <Link
+        to={`/propiedad/${prop.id}`}
+        state={{ images }}
+        className="carousel-card"
+      >
+        <div className="carousel-wrap">
+          <img src={imgs[idx]} alt={prop.title} />
+          {imgs.length > 1 && (
+            <>
+              <button className="carousel-nav left" onClick={prev} aria-label="Previous">‹</button>
+              <button className="carousel-nav right" onClick={next} aria-label="Next">›</button>
+              <div className="carousel-dots">
+                {imgs.map((_, i) => (
+                  <span
+                    key={i}
+                    className={`dot ${i === idx ? 'active' : ''}`}
+                    onClick={jump(i)}
+                    aria-label={`Go to image ${i + 1}`}
+                  />
+                ))}
+              </div>
+            </>
+          )}
+        </div>
+
+        <h3>{prop.title}</h3>
+        <p>{prop.price}</p>
+        <div className="property-details">
+          <span>{prop.bedrooms} beds</span>
+          <span>{prop.bathrooms} baths</span>
+          <span>{prop.size} m²</span>
+        </div>
+      </Link>
+    </div>
+  );
+}
 
 export default function Dubai() {
   const {
     selectedCity, setSelectedCity,
     selectedTypes, setSelectedTypes,
     searchTerm, setSearchTerm,
-    zonePage, setZonePage,
     propertyPage, setPropertyPage,
     cities,
     typeOptions,
@@ -16,13 +90,16 @@ export default function Dubai() {
     zonesData,
     paginatedProperties,
     typeCardsDubaiCity,
-    typeCardsAlAin,
-    typeCardsCombined,
-    totalPages
+    totalPages,
+    imagesByProperty,
   } = useDubaiLogic();
 
   const selectAllTypes = () => setSelectedTypes(typeOptions);
   const clearTypes = () => setSelectedTypes([]);
+
+  const onSubmit: React.FormEventHandler<HTMLFormElement> = (e) => {
+    e.preventDefault();
+  };
 
   const CustomMenuList = (props: any) => {
     const filteredOptions = props.options.filter((option: OptionType) =>
@@ -49,7 +126,7 @@ export default function Dubai() {
             key={option.value}
             {...props}
             data={option}
-            isSelected={selectedTypes.some(t => t.value === option.value)}
+            isSelected={selectedTypes.some((t: OptionType) => t.value === option.value)}
           >
             {option.label}
           </components.Option>
@@ -57,6 +134,8 @@ export default function Dubai() {
       </components.MenuList>
     );
   };
+
+  const zonesToShow = zonesData.Dubai ?? [];
 
   return (
     <div className="dubai-container">
@@ -68,7 +147,7 @@ export default function Dubai() {
       </section>
 
       <section className="search-section">
-        <form className="search-form">
+        <form className="search-form" onSubmit={onSubmit}>
           <select>
             <option>Buy</option>
             <option>Rent</option>
@@ -80,7 +159,7 @@ export default function Dubai() {
               isMulti
               placeholder="Tipo"
               value={selectedTypes}
-              onChange={setSelectedTypes}
+              onChange={setSelectedTypes as any}
               className="type-select"
               components={{ MenuList: CustomMenuList }}
               isSearchable={false}
@@ -97,7 +176,7 @@ export default function Dubai() {
 
           <select disabled={!selectedCity}>
             <option value=''>Área</option>
-            {selectedCity && areasByCity[selectedCity]?.map((area) => (
+            {selectedCity && areasByCity['Dubai City']?.map((area) => (
               <option key={area} value={area}>{area}</option>
             ))}
           </select>
@@ -126,91 +205,64 @@ export default function Dubai() {
       <section className="zones-section">
         <h2>Exclusive Properties and Unique Spaces</h2>
         <p>The best properties in {selectedCity || 'Dubai'}</p>
+
         <div className="zones-grid">
-          {(selectedCity
-            ? zonesData[selectedCity === 'Dubai City' ? 'Dubai' : 'Al Ain']
-            : zonePage === 1
-              ? zonesData['Dubai']
-              : zonesData['Al Ain']
-          ).map((zone) => (
-            <a key={zone.name} href={zone.link} className="zone-card">
+          {zonesToShow.map((zone) => (
+            <Link key={zone.slug ?? zone.name} to={zone.link} className="zone-card">
               <img src={zone.image} alt={zone.name} />
               <div className="zone-info">
                 <h3>{zone.name}</h3>
                 <button>View Properties</button>
               </div>
-            </a>
+            </Link>
           ))}
         </div>
-        {!selectedCity && (
-          <div className="pagination">
-            <button onClick={() => setZonePage(1)} className={zonePage === 1 ? 'active' : ''}>1</button>
-            <button onClick={() => setZonePage(2)} className={zonePage === 2 ? 'active' : ''}>2</button>
-          </div>
-        )}
       </section>
 
       <section className="property-types">
-  <h2>Properties by Type {selectedCity || 'Dubai'}</h2>
-  <p>Find the typology that suits your needs</p>
-  <div className="types-container">
-    {(selectedCity
-      ? (selectedCity === 'Dubai City' ? typeCardsDubaiCity : typeCardsAlAin)
-      : typeCardsCombined).map((group, index) => {
-        const folder = selectedCity
-          ? selectedCity === 'Dubai City' ? 'dubai_type' : 'alain_type'
-          : zonePage === 1 ? 'dubai_type' : 'alain_type';
+        <h2>Properties by Type Dubai</h2>
+        <p>Find the typology that suits your needs</p>
 
-        return (
-          <div key={index} className="type-group">
-            <h3>{group.category}</h3>
-            <p>{group.description}</p>
-            <div className="type-grid">
-              {group.types.map((type, idx) => {
-                const formattedType = type.name.toLowerCase().replace(/\\s+/g, '-');
-                return (
-                  <a key={idx} className="type-card" href={`/tipos/${folder}/${formattedType}`}>
-                    <img src={type.image} alt={type.name} />
-                    <div className="type-name">{type.name}</div>
-                    <span className="more-details">MORE DETAILS</span>
-                  </a>
-                );
-              })}
-            </div>
-          </div>
-        );
-      })}
-  </div>
-
-  {!selectedCity && (
-    <div className="pagination">
-      <button onClick={() => setZonePage(1)} className={zonePage === 1 ? 'active' : ''}>1</button>
-      <button onClick={() => setZonePage(2)} className={zonePage === 2 ? 'active' : ''}>2</button>
-    </div>
-  )}
-</section>
+        <div className="types-container">
+          {typeCardsDubaiCity.map((group, index) => {
+            const folder = 'dubai_type';
+            return (
+              <div key={index} className="type-group">
+                <h3>{group.category}</h3>
+                <p>{group.description}</p>
+                <div className="type-grid">
+                  {group.types.map((type: any, idx: number) => {
+                    const slug = type.slug || String(type.name).toLowerCase().replace(/\s+/g, '-');
+                    return (
+                      <Link key={idx} className="type-card" to={`/tipos/${folder}/${slug}`}>
+                        <img src={type.image} alt={type.name} />
+                        <div className="type-name">{type.name}</div>
+                        <span className="more-details">MORE DETAILS</span>
+                      </Link>
+                    );
+                  })}
+                </div>
+              </div>
+            );
+          })}
+        </div>
+      </section>
 
       <section className="property-selection">
-        <h2>Exclusive Properties in {selectedCity || 'Dubai'}</h2>
+        <h2>Exclusive Properties in Selection {selectedCity || 'Dubai'}</h2>
+
         <div className="selection-grid">
-          {paginatedProperties.map(prop => (
-            <div key={prop.id} className="property-item">
-              <a href={`/property/${prop.id}`}>
-                <img src={prop.image} alt={prop.title} />
-                <h3>{prop.title}</h3>
-                <p>{prop.price}</p>
-                <div className="property-details">
-                  <span>{prop.bedrooms} beds</span>
-                  <span>{prop.bathrooms} baths</span>
-                  <span>{prop.size} m²</span>
-                </div>
-              </a>
-            </div>
+          {paginatedProperties.map((prop) => (
+            <PropertyCard
+              key={prop.id}
+              prop={prop}
+              images={imagesByProperty[prop.id] ?? [prop.image]}
+            />
           ))}
         </div>
 
         <div className="pagination">
-          {[...Array(totalPages)].map((_, idx) => (
+          {Array.from({ length: totalPages }).map((_, idx) => (
             <button
               key={idx + 1}
               className={propertyPage === idx + 1 ? 'active' : ''}

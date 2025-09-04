@@ -17,6 +17,15 @@ interface Props {
   nextId?: string | null;
 }
 
+const toSlug = (s?: string) =>
+  (s ?? '')
+    .normalize('NFD')
+    .replace(/[\u0300-\u036f]/g, '')
+    .toLowerCase()
+    .trim()
+    .replace(/[^a-z0-9]+/g, '-')
+    .replace(/^-+|-+$/g, '');
+
 export default function PropertyDetails({
   prop, zona, tipo, imagenes, similares, priceFmt, prevId, nextId
 }: Props) {
@@ -56,9 +65,10 @@ export default function PropertyDetails({
     }
   };
 
-  // —— slugs para el breadcrumb (/zone/:province/:slug)
-  const provinceSlug = (zona?.ciudad || 'Madrid').toLowerCase();
-  const areaSlug = (zona?.area || '').toLowerCase();
+  // —— breadcrumbs dinámicos (España vs Dubái) ——
+  const isDubai = (zona?.ciudad === 'Dubai City') || (zona?.pais === 'UAE');
+  const provinceSlug = isDubai ? 'dubai' : toSlug(zona?.ciudad || 'madrid');
+  const areaSlug = toSlug(zona?.area || '');
   const areaLabel = zona?.area || 'Zona';
 
   // -------- Lightbox / Modal ----------
@@ -102,8 +112,17 @@ export default function PropertyDetails({
         {/* Breadcrumbs */}
         <nav className="breadcrumbs">
           <Link to="/">Home</Link> <span>›</span>
-          <Link to="/espanya">España</Link> <span>›</span>
-          <Link to={`/zone/${provinceSlug}/${areaSlug}`}>{areaLabel}</Link> <span>›</span>
+          {isDubai ? (
+            <>
+              <Link to="/dubai">Dubai</Link> <span>›</span>
+              <Link to={`/zone/dubai/${areaSlug}`}>{areaLabel}</Link> <span>›</span>
+            </>
+          ) : (
+            <>
+              <Link to="/espanya">España</Link> <span>›</span>
+              <Link to={`/zone/${provinceSlug}/${areaSlug}`}>{areaLabel}</Link> <span>›</span>
+            </>
+          )}
           <span className="current">{prop.titulo}</span>
         </nav>
 
@@ -153,7 +172,7 @@ export default function PropertyDetails({
                 src={url}
                 alt={`thumb-${i}`}
                 onError={onImgError}
-                onClick={() => openLightbox(i + 1)}  // índice real dentro de safeUrls
+                onClick={() => openLightbox(i + 1)}
                 style={{ cursor: 'zoom-in' }}
               />
             ))}
@@ -298,7 +317,7 @@ export default function PropertyDetails({
             <h3>Similar Ads</h3>
             <div className="pd-similar-grid">
               {similares.map(s => (
-                <Link key={s.id} to={`/propiedad/${s.id}`} className="pd-similar-card">
+                <Link key={s.id} to={`/propertyDetails/${s.id}`} className="pd-similar-card">
                   <div className="img">
                     <img src={s.imagen_principal || '/placeholder.jpg'} alt={s.titulo} />
                     <div className={`pill pill-${(s.estado_propiedad || 'BUY')?.toLowerCase?.() || 'buy'}`}>
@@ -323,12 +342,12 @@ export default function PropertyDetails({
         {/* Prev/Next navegables */}
         <div className="pd-prevnext">
           {prevId ? (
-            <Link to={`/propiedad/${prevId}`}>{'‹ Prev'}</Link>
+            <Link to={`/propertyDetails/${prevId}`}>{'‹ Prev'}</Link>
           ) : (
             <span style={{ opacity: 0.5, pointerEvents: 'none' }}>{'‹ Prev'}</span>
           )}
           {nextId ? (
-            <Link to={`/propiedad/${nextId}`}>{'Next ›'}</Link>
+            <Link to={`/propertyDetails/${nextId}`}>{'Next ›'}</Link>
           ) : (
             <span style={{ opacity: 0.5, pointerEvents: 'none' }}>{'Next ›'}</span>
           )}

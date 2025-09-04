@@ -157,6 +157,31 @@ export default function Espanya() {
         </form>
       </section>
 
+      {/* REGIONES (2 tarjetas estilo Home) */}
+<section className="regions-section">
+  <h2>Discover Spain’s Top Destinations</h2>
+  <p>Explore our curated selection of properties in Madrid and the Costa del Sol — two of Spain’s most vibrant real estate markets.</p>
+
+  <div className="regions-grid">
+    <Link to="/espanya/madrid" className="region-card">
+      <img src="/images_home/cibeles2.jpg" alt="Madrid" />
+      <div className="region-overlay">
+        <h3>Madrid</h3>
+        <button>View Properties</button>
+      </div>
+    </Link>
+
+    <Link to="/espanya/malaga" className="region-card">
+      <img src="/images_home/costa_del_sol.jpg" alt="Costa del Sol" />
+      <div className="region-overlay">
+        <h3>Costa del Sol</h3>
+        <button>View Properties</button>
+      </div>
+    </Link>
+  </div>
+</section>
+
+
       {/* ZONAS - paginación independiente */}
       <section className="zones-section">
         <h2>Exclusive Properties and Unique Spaces</h2>
@@ -243,7 +268,7 @@ export default function Espanya() {
         <div className="selection-grid">
           {paginatedProperties.map(prop => (
             <div key={prop.id} className="property-item">
-              <Link to={`/property/${prop.id}`}>
+              <Link to={`/propiedad/${encodeURIComponent(prop.id)}`}>
                 <img src={prop.image} alt={prop.title} />
                 <h3>{prop.title}</h3>
                 <p>{formatPrice(prop.price)}</p>
@@ -270,11 +295,27 @@ export default function Espanya() {
         </div>
       </section>
 
-      <section className="welcome-section">
-        <h2>Discover Your New Home with [Tu Empresa]</h2>
-        <p>We invite you to explore our website and discover the available properties, as well as our specialized services...</p>
-        <img src="/images_home/espanya_luxury.jpg" alt="Luxury Building" />
-      </section>
+      <section className="welcome-section espanya-welcome">
+  <h2>Find Your Home in Spain</h2>
+  <p>
+    From timeless neighborhoods in <strong>Madrid</strong> to the sun-kissed shores of the
+    <strong> Costa del Sol</strong>, explore hand-picked homes tailored to your lifestyle.
+  </p>
+
+  <div className="welcome-collage-card">
+    <div className="welcome-collage">
+      {/* Madrid */}
+      <img loading="lazy" src="/images_espanya/centro_madrid.jpg" alt="Gran Vía, Madrid" />
+      <img loading="lazy" src="/images_espanya/salamanca.jpg" alt="Barrio de Salamanca, Madrid" />
+      <img loading="lazy" src="/images_espanya/chamberi.jpg" alt="Parque del Retiro, Madrid" />
+
+      {/* Costa del Sol / Málaga */}
+      <img loading="lazy" src="/images_espanya/malagueta.jpg" alt="Playa en la Costa del Sol" />
+      <img loading="lazy" src="/images_espanya/malaga_centro.jpg" alt="Centro histórico de Málaga" />
+      <img loading="lazy" src="/images_espanya/malaga_puerto.jpeg" alt="Puerto de Málaga" />
+    </div>
+  </div>
+</section>
 
       <section className="why-choose-us">
         <div className="why-item">

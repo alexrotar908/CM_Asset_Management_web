@@ -1,5 +1,5 @@
 import { useEffect, useMemo, useState } from 'react';
-import { useParams } from 'react-router-dom';
+import { useLocation, useParams } from 'react-router-dom';
 import { supabase } from '../../../lib/supabaseClient';
 import PropertyDetails from './propertyDetail';
 
@@ -39,21 +39,18 @@ const toPublicUrl = (u: string) => {
   const base = (import.meta as any).env?.VITE_SUPABASE_URL?.replace(/\/+$/, '') || '';
   const clean = u.trim().replace(/^\/+/, '');
 
-  // 1) Ya es absoluta o data-url
   if (/^https?:\/\//i.test(clean) || clean.startsWith('data:')) return clean;
-
-  // 2) Te guardaron "storage/v1/object/public/..." sin host
   if (clean.startsWith('storage/v1/object/public/')) return `${base}/${clean}`;
-
-  // 3) Te guardaron "bucket/folder/file.jpg" (asumiendo bucket público)
   return `${base}/storage/v1/object/public/${clean}`;
 };
 
 const unique = (arr: string[]) => Array.from(new Set(arr));
 
-// ===== Contenedor de Datos =====
 export default function PropertyDataDetails() {
   const { id } = useParams();
+  const location = useLocation() as { state?: { images?: string[] } };
+  const preloadImages = (location.state?.images ?? []).filter(isGood).map(toPublicUrl);
+
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState<string | null>(null);
 
@@ -91,7 +88,6 @@ export default function PropertyDataDetails() {
           .select('direccion,codigo_postal,lat,lng,ref_code')
           .eq('propiedad_id', p.id)
           .maybeSingle();
-
         if (eDet) throw eDet;
 
         const propConDetalle: PropertyRow = { ...(p as PropertyRow), ...(det || {}) };
@@ -114,29 +110,26 @@ export default function PropertyDataDetails() {
           setTipo(tRes.data as TipoRow | null);
         }
 
-        // 3) Imágenes (principal + adicionales)  ➜  NORMALIZADAS
+        // 3) Imágenes (principal + adicionales)  ➜  NORMALIZADAS (+ preload desde state)
         const { data: imgs, error: eImgs } = await supabase
           .from('imagenes_propiedad')
           .select('id,url,categoria,propiedad_id')
           .eq('propiedad_id', p.id)
           .order('id', { ascending: true });
-
         if (eImgs) throw eImgs;
 
         if (!ignore) {
-          // extras desde tabla
-          const extras = (imgs ?? [])
+          const extrasDb = (imgs ?? [])
             .map(r => r?.url)
             .filter(isGood)
             .map(u => toPublicUrl(u!));
 
-          // portada primero si existe y es válida
           const portada = isGood(p.imagen_principal)
             ? [toPublicUrl(p.imagen_principal!)]
             : [];
 
-          // portada + extras sin duplicados
-          const ordered = unique([...portada, ...extras]);
+          // Prioridad: portada -> preload (state) -> extras DB
+          const ordered = unique([...portada, ...preloadImages, ...extrasDb]);
 
           const normalized: ImagenRow[] = ordered.map((u, idx) => ({
             id: `img-${idx}`,
@@ -160,7 +153,6 @@ export default function PropertyDataDetails() {
           .neq('id', p.id)
           .or(orParts)
           .limit(4);
-
         if (eSim) throw eSim;
         if (!ignore) setSimilar((sim ?? []) as any);
 

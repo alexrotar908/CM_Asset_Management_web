@@ -1,4 +1,3 @@
-// src/pages/tipo/madrid_type/atico/atico.tsx
 import { useEffect, useMemo, useRef, useState } from 'react';
 import './atico.css';
 import { Link, useNavigate } from 'react-router-dom';

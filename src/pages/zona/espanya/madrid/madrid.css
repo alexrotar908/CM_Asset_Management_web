@@ -1,0 +1,5 @@
+/* src/pages/espanya/madrid/madrid.css */
+@import '../espanya.css';
+
+/* Aquí puedes añadir overrides específicos de Madrid si los necesitas.
+   El hero ya usa la imagen mediante style inline en el TSX. */

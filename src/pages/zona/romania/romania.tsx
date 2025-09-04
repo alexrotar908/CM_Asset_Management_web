@@ -1,14 +1,21 @@
+// src/pages/zona/romania/romania.tsx
 import './romania.css';
 import Select, { components } from 'react-select';
+import { Link } from 'react-router-dom';
+import { useState } from 'react';
 import type { OptionType } from './romaniaData';
 import { useRomaniaLogic } from './romaniaData';
+
+type CityKey = 'Bucharest' | 'Cluj Napoca';
+type ZoneCard = { name: string; slug: string; image: string; link: string };
+type TypeCard = { name: string; image: string };
+type TypeGroup = { category: string; description: string; types: TypeCard[] };
 
 export default function Romania() {
   const {
     selectedCity, setSelectedCity,
     selectedTypes, setSelectedTypes,
     searchTerm, setSearchTerm,
-    zonePage, setZonePage,
     propertyPage, setPropertyPage,
     cities,
     typeOptions,
@@ -20,8 +27,13 @@ export default function Romania() {
     typeCardsCluj
   } = useRomaniaLogic();
 
+  // Control local para alternar Bucharest / Cluj cuando no hay ciudad seleccionada
+  const [zonePage, setZonePage] = useState<number>(1);
+
   const selectAllTypes = () => setSelectedTypes(typeOptions);
   const clearTypes = () => setSelectedTypes([]);
+
+  const onSubmit: React.FormEventHandler<HTMLFormElement> = (e) => e.preventDefault();
 
   const CustomMenuList = (props: any) => {
     const filteredOptions = props.options.filter((option: OptionType) =>
@@ -43,12 +55,13 @@ export default function Romania() {
             <button type="button" onClick={clearTypes}>Quitar selección</button>
           </div>
         </div>
+
         {filteredOptions.map((option: OptionType) => (
           <components.Option
             key={option.value}
             {...props}
             data={option}
-            isSelected={selectedTypes.some(t => t.value === option.value)}
+            isSelected={(selectedTypes as OptionType[]).some(t => t.value === option.value)}
           >
             {option.label}
           </components.Option>
@@ -56,6 +69,24 @@ export default function Romania() {
       </components.MenuList>
     );
   };
+
+  // ----- Narrowing seguro para indexar zonas y tarjetas -----
+  const isCityKey = (c: string): c is CityKey => c === 'Bucharest' || c === 'Cluj Napoca';
+
+  const zonesToShow: ZoneCard[] =
+    isCityKey(selectedCity)
+      ? zonesData[selectedCity]
+      : (zonePage === 1 ? zonesData['Bucharest'] : zonesData['Cluj Napoca']);
+
+  const typeCardsToShow: TypeGroup[] =
+    isCityKey(selectedCity)
+      ? (selectedCity === 'Bucharest' ? typeCardsBucharest : typeCardsCluj)
+      : (zonePage === 1 ? typeCardsBucharest : typeCardsCluj);
+
+  const typeFolder =
+    isCityKey(selectedCity)
+      ? (selectedCity === 'Bucharest' ? 'bucharest_type' : 'cluj_type')
+      : (zonePage === 1 ? 'bucharest_type' : 'cluj_type');
 
   return (
     <div className="romania-container">
@@ -67,7 +98,7 @@ export default function Romania() {
       </section>
 
       <section className="search-section">
-        <form className="search-form">
+        <form className="search-form" onSubmit={onSubmit}>
           <select>
             <option>Buy</option>
             <option>Rent</option>
@@ -78,8 +109,8 @@ export default function Romania() {
               options={typeOptions}
               isMulti
               placeholder="Tipo"
-              value={selectedTypes}
-              onChange={setSelectedTypes}
+              value={selectedTypes as any}
+              onChange={setSelectedTypes as any}
               className="type-select"
               components={{ MenuList: CustomMenuList }}
               isSearchable={false}
@@ -96,7 +127,7 @@ export default function Romania() {
 
           <select disabled={!selectedCity}>
             <option value=''>Área</option>
-            {selectedCity && areasByCity[selectedCity]?.map((area) => (
+            {isCityKey(selectedCity) && areasByCity[selectedCity]?.map((area) => (
               <option key={area} value={area}>{area}</option>
             ))}
           </select>
@@ -124,24 +155,21 @@ export default function Romania() {
 
       <section className="zones-section">
         <h2>Exclusive Properties and Unique Spaces</h2>
-        <p>The best properties in {selectedCity || 'Romania'}</p>
+        <p>The best properties in {isCityKey(selectedCity) ? selectedCity : 'Romania'}</p>
+
         <div className="zones-grid">
-          {(selectedCity
-            ? zonesData[selectedCity]
-            : zonePage === 1
-              ? zonesData['Bucharest']
-              : zonesData['Cluj Napoca']
-          ).map((zone) => (
-            <a key={zone.name} href={zone.link} className="zone-card">
+          {zonesToShow.map((zone: ZoneCard) => (
+            <Link key={zone.slug ?? zone.name} to={zone.link} className="zone-card">
               <img src={zone.image} alt={zone.name} />
               <div className="zone-info">
                 <h3>{zone.name}</h3>
                 <button>View Properties</button>
               </div>
-            </a>
+            </Link>
           ))}
         </div>
-        {!selectedCity && (
+
+        {!isCityKey(selectedCity) && (
           <div className="pagination">
             <button onClick={() => setZonePage(1)} className={zonePage === 1 ? 'active' : ''}>1</button>
             <button onClick={() => setZonePage(2)} className={zonePage === 2 ? 'active' : ''}>2</button>
@@ -150,46 +178,35 @@ export default function Romania() {
       </section>
 
       <section className="property-types">
-        <h2>Properties by Type {selectedCity || 'Romania'}</h2>
+        <h2>Properties by Type {isCityKey(selectedCity) ? selectedCity : 'Romania'}</h2>
         <p>Find the typology that suits your needs</p>
+
         <div className="types-container">
-          {(selectedCity
-            ? (selectedCity === 'Bucharest' ? typeCardsBucharest : typeCardsCluj)
-            : zonePage === 1
-              ? typeCardsBucharest
-              : typeCardsCluj
-          ).map((group, index) => {
-            const cityFolder = selectedCity
-              ? selectedCity === 'Bucharest' ? 'bucharest_type' : 'cluj_type'
-              : zonePage === 1 ? 'bucharest_type' : 'cluj_type';
-
-            return (
-              <div key={index} className="type-group">
-                <h3>{group.category}</h3>
-                <p>{group.description}</p>
-                <div className="type-grid">
-                  {group.types.map((type, idx) => {
-                    const formattedType = type.name.toLowerCase().replace(/\s+/g, '-');
-
-                    return (
-                      <a
-                        key={idx}
-                        className="type-card"
-                        href={`/tipos/${cityFolder}/${formattedType}`}
-                      >
-                        <img src={type.image} alt={type.name} />
-                        <div className="type-name">{type.name}</div>
-                        <span className="more-details">MORE DETAILS</span>
-                      </a>
-                    );
-                  })}
-                </div>
+          {typeCardsToShow.map((group: TypeGroup, index: number) => (
+            <div key={index} className="type-group">
+              <h3>{group.category}</h3>
+              <p>{group.description}</p>
+              <div className="type-grid">
+                {group.types.map((type: TypeCard, idx: number) => {
+                  const formattedType = type.name.toLowerCase().replace(/\s+/g, '-');
+                  return (
+                    <Link
+                      key={idx}
+                      className="type-card"
+                      to={`/tipos/${typeFolder}/${formattedType}`}
+                    >
+                      <img src={type.image} alt={type.name} />
+                      <div className="type-name">{type.name}</div>
+                      <span className="more-details">MORE DETAILS</span>
+                    </Link>
+                  );
+                })}
               </div>
-            );
-          })}
+            </div>
+          ))}
         </div>
 
-        {!selectedCity && (
+        {!isCityKey(selectedCity) && (
           <div className="pagination">
             <button onClick={() => setZonePage(1)} className={zonePage === 1 ? 'active' : ''}>1</button>
             <button onClick={() => setZonePage(2)} className={zonePage === 2 ? 'active' : ''}>2</button>
@@ -198,11 +215,12 @@ export default function Romania() {
       </section>
 
       <section className="property-selection">
-        <h2>Exclusive Properties in {selectedCity || 'Romania'}</h2>
+        <h2>Exclusive Properties in {isCityKey(selectedCity) ? selectedCity : 'Romania'}</h2>
+
         <div className="selection-grid">
-          {paginatedProperties.map(prop => (
+          {paginatedProperties.map((prop) => (
             <div key={prop.id} className="property-item">
-              <a href={`/property/${prop.id}`}>
+              <Link to={`/propiedad/${prop.id}`}>
                 <img src={prop.image} alt={prop.title} />
                 <h3>{prop.title}</h3>
                 <p>{prop.price}</p>
@@ -211,13 +229,13 @@ export default function Romania() {
                   <span>{prop.bathrooms} baths</span>
                   <span>{prop.size} m²</span>
                 </div>
-              </a>
+              </Link>
             </div>
           ))}
         </div>
 
         <div className="pagination">
-          {[...Array(totalPages)].map((_, idx) => (
+          {Array.from({ length: totalPages }).map((_, idx) => (
             <button
               key={idx + 1}
               className={propertyPage === idx + 1 ? 'active' : ''}
