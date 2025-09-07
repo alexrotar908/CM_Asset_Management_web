@@ -1,0 +1,195 @@
+/* Layout base */
+.who-page { padding-top: 72px; background:#fff; color:#111827; }
+.container { max-width: 1120px; margin: 0 auto; padding: 0 24px; }
+
+/* HERO */
+.who-hero { height: 46vh; min-height: 360px; display:flex; align-items:center; }
+.who-hero-img {
+  width:100%; height:100%;
+  background: url('/images_agencia/who/who_portada.jpg') center/cover no-repeat;
+}
+
+.section {
+  margin-top: 60px; /* ajusta según te guste */
+}
+
+
+/* INTRO */
+.who-intro { text-align:center; padding: 48px 0 28px; }
+.who-eyebrow, .eyebrow {
+  text-transform: none;
+  letter-spacing: .02em;
+  font-weight: 500;
+  color:#6b7280;
+  margin: 0 0 6px;
+}
+.who-title {
+  font-size: clamp(28px, 4vw, 40px);
+  line-height: 1.2;
+  margin: 6px 0 14px;
+  font-weight: 700;
+}
+.who-lead {
+  max-width: 900px;
+  margin: 0 auto 10px;
+  line-height: 1.7;
+  color:#374151;
+}
+.subtle { color:#4b5563; }
+.center { text-align: center; }
+
+/* SPLIT SECTIONS (What / How / Why) */
+.who-split {
+  display:grid;
+  grid-template-columns: 1.05fr 1fr;
+  gap: 36px;
+  align-items: center;
+  padding: 56px 0;
+}
+.who-split.reverse { grid-template-columns: 1fr 1.05fr; }
+.who-split.reverse .split-img { order: 2; }
+.who-split.reverse .split-copy { order: 1; }
+
+.split-img .img {
+  height: 360px;
+  border-radius: 12px;
+  background-size: cover;
+  background-position: center;
+  box-shadow: 0 10px 28px rgba(0,0,0,.12);
+}
+.img-what { background-image: url('/images_agencia/who/what.png'); }
+.img-how  { background-image: url('/images_agencia/who/how.png'); }
+.img-why  { background-image: url('/images_agencia/who/why.png'); }
+
+.split-copy .section-title {
+  font-size: clamp(24px, 3.2vw, 34px);
+  line-height: 1.25;
+  margin: 6px 0 12px;
+  font-weight: 700;
+}
+.split-copy p { color:#374151; line-height: 1.75; margin: 0 0 10px; }
+
+/* TEAM */
+.who-team { padding: 56px 0 24px; }
+.team-hero {
+  height: 360px;
+  background: url('/images_agencia/who/team.png') center/cover no-repeat;
+  border-radius: 12px;
+  box-shadow: 0 10px 28px rgba(0,0,0,.12);
+  margin-bottom: 18px;
+}
+.team-copy { text-align:center; }
+.team-copy .section-title { margin-bottom: 10px; }
+
+/* CTA */
+.who-cta {
+  padding: 44px 0 80px;
+  display:flex;
+  align-items:center;
+  justify-content: center;
+  gap: 18px;
+  flex-wrap: wrap;
+  border-top: 1px solid #e5e7eb;
+}
+.cta-text {
+  font-size: clamp(16px, 2.2vw, 18px);
+  color:#111827;
+  max-width: 820px;
+  text-align: center;
+}
+.btn-primary {
+  display:inline-block;
+  padding: 12px 20px;
+  border-radius: 10px;
+  background:#111827;
+  color:#fff;
+  text-decoration:none;
+  font-weight: 600;
+  transition: transform .15s ease, box-shadow .15s ease, background .15s ease;
+}
+.btn-primary:hover { transform: translateY(-2px); box-shadow: 0 8px 18px rgba(0,0,0,.18); }
+.btn-primary:active { transform: translateY(0); }
+
+/* Footer a ancho completo */
+.who-footer {
+  background: #0d2c52;
+  color: white;
+  padding: 3rem 6rem 0 6rem;
+}
+
+.footer-top {
+  display: flex;
+  justify-content: space-between;
+  flex-wrap: wrap;
+  border-bottom: 1px solid #444;
+  padding-bottom: 2rem;
+}
+
+.footer-location h4,
+.footer-links h4 {
+  font-size: 1.2rem;
+  margin-bottom: 1rem;
+}
+
+.footer-location p,
+.footer-links ul li a {
+  color: #ddd;
+  font-size: 0.95rem;
+  margin: 0.3rem 0;
+  text-decoration: none;
+}
+
+.footer-links ul {
+  list-style: none;
+  padding: 0;
+}
+
+.footer-links ul li {
+  margin: 0.3rem 0;
+}
+
+.footer-links a:hover {
+  text-decoration: underline;
+}
+
+/* Parte inferior */
+.footer-bottom {
+  background: black;
+  color: white;
+  text-align: center;
+  padding: 2rem 0;
+}
+
+.footer-bottom .footer-logo {
+  height: 40px;
+  margin-bottom: 1rem;
+}
+
+.social-icons {
+  display: flex;
+  justify-content: center;
+  gap: 1.5rem;
+  margin: 1rem 0;
+}
+
+.social-icons i {
+  font-size: 1.2rem;
+  color: white;
+}
+
+
+/* ===== Responsive ===== */
+@media (max-width: 1024px) {
+  .who-split, .who-split.reverse { grid-template-columns: 1fr; }
+  .who-split.reverse .split-img, .who-split.reverse .split-copy { order: initial; }
+  .split-img .img { height: 320px; }
+  .who-hero { height: 40vh; }
+}
+@media (max-width: 760px) {
+  .centro_historico-footer .footer-top { grid-template-columns: 1fr; }
+  .logo-socials { width: 100%; justify-content: space-between; }
+}
+@media (max-width: 640px) {
+  .split-img .img { height: 240px; }
+  .who-cta { padding-bottom: 64px; }
+}

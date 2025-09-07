@@ -44,7 +44,7 @@ import PenthouseCluj from '../pages/tipo/cluj_type/penthouse_cluj/penthouse_cluj
 export default function TipoRouter() {
   const { zona, tipo } = useParams();
 
-
+  
   const key = `${zona?.toLowerCase()}/${tipo?.toLowerCase()}`;
 
   switch (key) {

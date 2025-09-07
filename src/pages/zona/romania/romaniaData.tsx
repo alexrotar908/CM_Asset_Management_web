@@ -1,4 +1,3 @@
-// src/pages/zona/romania/romaniaData.tsx
 import { useEffect, useMemo, useState } from 'react';
 import type { MultiValue } from 'react-select';
 import { supabase } from '../../../lib/supabaseClient';
@@ -48,6 +47,13 @@ export const useRomaniaLogic = () => {
   const [propertyPage, setPropertyPage] = useState<number>(1);
   const propertiesPerPage = 3;
 
+  /* 🔹 Estado de paginación independiente (ZONAS y TIPOS) */
+  const [zonePage, setZonePage] = useState<number>(1);
+  const zonesPerPage = 4;
+
+  const [typePage, setTypePage] = useState<number>(1);
+  const typeCategoriesPerPage = 2; // n.º de bloques/categorías por página
+
   /* Datos para selects/zonas/props */
   const [typeOptions, setTypeOptions] = useState<OptionType[]>([
     { value: 'apartamento', label: 'Apartamento' },
@@ -91,7 +97,6 @@ export const useRomaniaLogic = () => {
   /* -------- Carga de ZONAS (Bucharest/Cluj) + PROPIEDADES + IMÁGENES -------- */
   useEffect(() => {
     (async () => {
-      // 1) Zonas de Rumanía (filtra por ciudades; no asumo 'pais' para evitar falsos negativos)
       const { data, error } = await supabase
         .from('zonas')
         .select('id, ciudad, area, pais')
@@ -102,7 +107,6 @@ export const useRomaniaLogic = () => {
       if (error || !data) return;
       const rows = data as ZonaRow[];
 
-      // Imágenes de portada por área (fallback si falta)
       const areaImage: Record<string, string> = {
         // Bucharest
         'Old Town': '/images_romania/old_town.jpg',
@@ -124,7 +128,6 @@ export const useRomaniaLogic = () => {
           .replace(/[^a-z0-9]+/g, '-')
           .replace(/^-+|-+$/g, '');
 
-      // Áreas por ciudad
       const nextAreas: Record<string, string[]> = { Bucharest: [], 'Cluj Napoca': [] };
       for (const z of rows) {
         if (z.ciudad === 'Bucharest') nextAreas.Bucharest.push(z.area);
@@ -132,7 +135,6 @@ export const useRomaniaLogic = () => {
       }
       setAreasByCity(nextAreas);
 
-      // Cards de zonas (rutas a /zone/bucharest/:slug | /zone/cluj/:slug)
       const bucharestCards = rows
         .filter(z => z.ciudad === 'Bucharest')
         .map(z => ({
@@ -153,7 +155,6 @@ export const useRomaniaLogic = () => {
 
       setZonesData({ Bucharest: bucharestCards, 'Cluj Napoca': clujCards });
 
-      // 2) Propiedades de esas zonas
       const zoneIds = rows.map(r => r.id);
       if (!zoneIds.length) return;
 
@@ -166,14 +167,12 @@ export const useRomaniaLogic = () => {
 
       if (perr || !props) return;
 
-      // 3) Imágenes de esas propiedades
       const propIds = (props as PropRow[]).map(p => p.id);
       const { data: imgs } = await supabase
         .from('imagenes_propiedad')
         .select('propiedad_id, url, categoria')
         .in('propiedad_id', propIds);
 
-      // Orden para carrusel (mismo que Dubai)
       const order = [
         'portadas', 'entradas',
         'salones', 'comedores', 'cocinas',
@@ -194,7 +193,6 @@ export const useRomaniaLogic = () => {
         group[propiedad_id].push(JSON.stringify({ url, categoria: categoria ?? '' }));
       });
 
-      // sort con prioridad por categoria
       for (const k of Object.keys(group)) {
         group[k].sort((a, b) => {
           const A = JSON.parse(a) as { url: string; categoria: string };
@@ -202,11 +200,9 @@ export const useRomaniaLogic = () => {
           const d = idx(A.categoria) - idx(B.categoria);
           return d !== 0 ? d : A.url.localeCompare(B.url);
         });
-        // Devuelve solo las urls
         group[k] = group[k].map(s => (JSON.parse(s) as { url: string }).url);
       }
 
-      // Mapa zona_id -> ciudad (para setear city en la card)
       const zoneIdToCity: Record<string, string> = {};
       for (const z of rows) zoneIdToCity[z.id] = z.ciudad;
 
@@ -215,7 +211,6 @@ export const useRomaniaLogic = () => {
           ? n.toLocaleString('es-ES', { maximumFractionDigits: 0 }) + ' €'
           : '—';
 
-      // Compose propiedades usando la primera imagen como portada
       const mapped: Property[] = (props as PropRow[]).map(p => {
         const imgsProp = group[p.id] ?? [];
         const cover = imgsProp[0] ?? p.imagen_principal ?? '/images_romania/romania_fallback.jpg';
@@ -289,13 +284,51 @@ export const useRomaniaLogic = () => {
 
   const totalPages = Math.max(1, Math.ceil(filteredProperties.length / propertiesPerPage));
 
+  /* 🔹 ZONAS: fuente + paginación independiente */
+  const zoneCardsSource = useMemo(() => {
+    if (selectedCity === 'Bucharest') return zonesData.Bucharest;
+    if (selectedCity === 'Cluj Napoca') return zonesData['Cluj Napoca'];
+    // sin filtro: primero Bucharest, luego Cluj
+    return [...zonesData.Bucharest, ...zonesData['Cluj Napoca']];
+  }, [zonesData, selectedCity]);
+
+  const paginatedZones = useMemo(() => {
+    const start = (zonePage - 1) * zonesPerPage;
+    return zoneCardsSource.slice(start, start + zonesPerPage);
+  }, [zoneCardsSource, zonePage]);
+
+  const zoneTotalPages = Math.max(1, Math.ceil(zoneCardsSource.length / zonesPerPage));
+
+  /* 🔹 TYPES: fuente + paginación independiente */
+  const typeCardsSource = useMemo(() => {
+    if (selectedCity === 'Bucharest') return typeCardsBucharest;
+    if (selectedCity === 'Cluj Napoca') return typeCardsCluj;
+    return typeCardsCombined;
+  }, [selectedCity]);
+
+  const typeCardsForView = useMemo(() => {
+    const start = (typePage - 1) * typeCategoriesPerPage;
+    return typeCardsSource.slice(start, start + typeCategoriesPerPage);
+  }, [typeCardsSource, typePage]);
+
+  const typeTotalPages = Math.max(1, Math.ceil(typeCardsSource.length / typeCategoriesPerPage));
+
+  /* Si cambia el filtro de ciudad, reiniciamos cada paginación a 1 */
+  useEffect(() => {
+    setZonePage(1);
+    setTypePage(1);
+    setPropertyPage(1);
+  }, [selectedCity]);
+
   return {
     // estado
     selectedCity, setSelectedCity,
     selectedTypes, setSelectedTypes,
     searchTerm, setSearchTerm,
 
-    // paginación propiedades
+    // paginaciones independientes
+    zonePage, setZonePage, zoneTotalPages,
+    typePage, setTypePage, typeTotalPages,
     propertyPage, setPropertyPage,
 
     // datos (desde BD)
@@ -316,5 +349,9 @@ export const useRomaniaLogic = () => {
     typeCardsBucharest,
     typeCardsCluj,
     typeCardsCombined,
+
+    // derivados para UI
+    paginatedZones,
+    typeCardsForView,
   };
 };

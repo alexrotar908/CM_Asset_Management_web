@@ -34,8 +34,21 @@ const Navbar: React.FC = () => {
           <Link to="/espanya">España</Link>
           <Link to="/dubai">Dubái</Link>
           <Link to="/romania">Rumanía</Link>
-          <Link to="/agencia">Agencia</Link>
-          <Link to="/servicios">Servicios</Link>
+
+
+           {/* ===== Dropdown Agencia (Who + Servicios) ===== */}
+          <div className="nav-item dropdown" tabIndex={0}>
+            <span className="dropdown-toggle">Agencia</span>
+            <div className="dropdown-menu">
+              <Link to="/who" className="dropdown-item">Who</Link>
+              <Link to="/servicios" className="dropdown-item">Servicios</Link>
+            </div>
+          </div>
+
+          {/* Elimina los enlaces sueltos a Who/Servicios si los tenías en línea */}
+          {/* <NavLink to="/who" className="nav-item">Who</NavLink>
+          <NavLink to="/servicios" className="nav-item">Servicios</NavLink> */}
+
           <Link to="/contacto">Contacto</Link>
 
           {user ? (

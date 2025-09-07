@@ -1,34 +1,42 @@
-// src/pages/zona/romania/romania.tsx
 import './romania.css';
 import Select, { components } from 'react-select';
 import { Link } from 'react-router-dom';
-import { useState } from 'react';
 import type { OptionType } from './romaniaData';
 import { useRomaniaLogic } from './romaniaData';
 
 type CityKey = 'Bucharest' | 'Cluj Napoca';
 type ZoneCard = { name: string; slug: string; image: string; link: string };
-type TypeCard = { name: string; image: string };
+type TypeCard = { name: string; slug: string; image: string };
 type TypeGroup = { category: string; description: string; types: TypeCard[] };
 
 export default function Romania() {
   const {
+    // filtros
     selectedCity, setSelectedCity,
     selectedTypes, setSelectedTypes,
     searchTerm, setSearchTerm,
+
+    // paginaciones independientes
+    zonePage, setZonePage, zoneTotalPages,
+    typePage, setTypePage, typeTotalPages,
     propertyPage, setPropertyPage,
+
+    // data
     cities,
     typeOptions,
     areasByCity,
-    zonesData,
+
+    // zonas y tipos ya paginados
+    paginatedZones,
+    typeCardsForView,
+
+    // props
     paginatedProperties,
     totalPages,
-    typeCardsBucharest,
-    typeCardsCluj
-  } = useRomaniaLogic();
 
-  // Control local para alternar Bucharest / Cluj cuando no hay ciudad seleccionada
-  const [zonePage, setZonePage] = useState<number>(1);
+    // (solo para tipado y fallback si lo necesitas en otra parte)
+    // zonesData, typeCardsBucharest, typeCardsCluj
+  } = useRomaniaLogic();
 
   const selectAllTypes = () => setSelectedTypes(typeOptions);
   const clearTypes = () => setSelectedTypes([]);
@@ -70,23 +78,16 @@ export default function Romania() {
     );
   };
 
-  // ----- Narrowing seguro para indexar zonas y tarjetas -----
+  // ----- Util -----
   const isCityKey = (c: string): c is CityKey => c === 'Bucharest' || c === 'Cluj Napoca';
 
-  const zonesToShow: ZoneCard[] =
-    isCityKey(selectedCity)
-      ? zonesData[selectedCity]
-      : (zonePage === 1 ? zonesData['Bucharest'] : zonesData['Cluj Napoca']);
-
-  const typeCardsToShow: TypeGroup[] =
-    isCityKey(selectedCity)
-      ? (selectedCity === 'Bucharest' ? typeCardsBucharest : typeCardsCluj)
-      : (zonePage === 1 ? typeCardsBucharest : typeCardsCluj);
-
+  // Carpeta para las rutas de Tipos
+  // - Si hay ciudad: va directa a su carpeta
+  // - Si no hay ciudad: página 1 = Bucharest, página 2 = Cluj (coherente con la paginación del hook)
   const typeFolder =
     isCityKey(selectedCity)
       ? (selectedCity === 'Bucharest' ? 'bucharest_type' : 'cluj_type')
-      : (zonePage === 1 ? 'bucharest_type' : 'cluj_type');
+      : (typePage === 1 ? 'bucharest_type' : 'cluj_type');
 
   return (
     <div className="romania-container">
@@ -153,12 +154,13 @@ export default function Romania() {
         </form>
       </section>
 
+      {/* ================= ZONAS ================= */}
       <section className="zones-section">
         <h2>Exclusive Properties and Unique Spaces</h2>
         <p>The best properties in {isCityKey(selectedCity) ? selectedCity : 'Romania'}</p>
 
         <div className="zones-grid">
-          {zonesToShow.map((zone: ZoneCard) => (
+          {paginatedZones.map((zone: ZoneCard) => (
             <Link key={zone.slug ?? zone.name} to={zone.link} className="zone-card">
               <img src={zone.image} alt={zone.name} />
               <div className="zone-info">
@@ -169,51 +171,64 @@ export default function Romania() {
           ))}
         </div>
 
-        {!isCityKey(selectedCity) && (
+        {(!isCityKey(selectedCity) && zoneTotalPages > 1) && (
           <div className="pagination">
-            <button onClick={() => setZonePage(1)} className={zonePage === 1 ? 'active' : ''}>1</button>
-            <button onClick={() => setZonePage(2)} className={zonePage === 2 ? 'active' : ''}>2</button>
+            {Array.from({ length: zoneTotalPages }).map((_, i) => (
+              <button
+                key={i + 1}
+                onClick={() => setZonePage(i + 1)}
+                className={zonePage === i + 1 ? 'active' : ''}
+              >
+                {i + 1}
+              </button>
+            ))}
           </div>
         )}
       </section>
 
-      <section className="property-types">
+      {/* ================= TYPES ================= */}
+       <section className="property-types">
         <h2>Properties by Type {isCityKey(selectedCity) ? selectedCity : 'Romania'}</h2>
         <p>Find the typology that suits your needs</p>
 
         <div className="types-container">
-          {typeCardsToShow.map((group: TypeGroup, index: number) => (
+          {typeCardsForView.map((group: TypeGroup, index: number) => (
             <div key={index} className="type-group">
               <h3>{group.category}</h3>
               <p>{group.description}</p>
               <div className="type-grid">
-                {group.types.map((type: TypeCard, idx: number) => {
-                  const formattedType = type.name.toLowerCase().replace(/\s+/g, '-');
-                  return (
-                    <Link
-                      key={idx}
-                      className="type-card"
-                      to={`/tipos/${typeFolder}/${formattedType}`}
-                    >
-                      <img src={type.image} alt={type.name} />
-                      <div className="type-name">{type.name}</div>
-                      <span className="more-details">MORE DETAILS</span>
-                    </Link>
-                  );
-                })}
+                {group.types.map((type: TypeCard, idx: number) => (
+                  <Link
+                    key={idx}
+                    className="type-card"
+                    to={`/tipos/${typeFolder}/${type.slug}`}   // <-- usar slug siempre
+                  >
+                    <img src={type.image} alt={type.name} />
+                    <div className="type-name">{type.name}</div>
+                    <span className="more-details">MORE DETAILS</span>
+                  </Link>
+                ))}
               </div>
             </div>
           ))}
         </div>
 
-        {!isCityKey(selectedCity) && (
+        {(!isCityKey(selectedCity) && typeTotalPages > 1) && (
           <div className="pagination">
-            <button onClick={() => setZonePage(1)} className={zonePage === 1 ? 'active' : ''}>1</button>
-            <button onClick={() => setZonePage(2)} className={zonePage === 2 ? 'active' : ''}>2</button>
+            {Array.from({ length: typeTotalPages }).map((_, i) => (
+              <button
+                key={i + 1}
+                onClick={() => setTypePage(i + 1)}
+                className={typePage === i + 1 ? 'active' : ''}
+              >
+                {i + 1}
+              </button>
+            ))}
           </div>
         )}
       </section>
 
+      {/* ================= PROPIEDADES ================= */}
       <section className="property-selection">
         <h2>Exclusive Properties in {isCityKey(selectedCity) ? selectedCity : 'Romania'}</h2>
 

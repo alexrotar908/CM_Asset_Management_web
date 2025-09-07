@@ -96,3 +96,70 @@
 .user-menu-dropdown button:hover {
   background-color: #f8f8f8;
 }
+
+/* ========= DROPDOWN "AGENCIA" ========= */
+.dropdown {
+  position: relative;
+  display: inline-block; /* Importante para que abarque toggle + menu */
+}
+
+/* El trigger (texto "Agencia") */
+.dropdown-toggle {
+  display: inline-block;
+  margin: 0 0.5rem;
+  color: #374151;
+  font-weight: 500;
+  cursor: pointer;
+  user-select: none;
+}
+.dropdown-toggle::after {
+  content: "▾";
+  margin-left: 6px;
+  font-size: 0.8rem;
+  vertical-align: middle;
+  color: #6b7280;
+}
+
+/* Menú oculto por defecto */
+.dropdown-menu {
+  position: absolute;
+  top: 100%; /* pegado justo debajo */
+  left: 0;
+  min-width: 180px;
+  background: #ffffff;
+  border: 1px solid #e5e7eb;
+  border-radius: 10px;
+  padding: 6px;
+  box-shadow: 0 10px 24px rgba(0,0,0,0.15);
+  display: none;
+  opacity: 0;
+  transform: translateY(6px);
+  transition: opacity .15s ease, transform .15s ease;
+  z-index: 200;
+}
+
+/* Mostrar al pasar el cursor sobre TODO el bloque .dropdown */
+.dropdown:hover .dropdown-menu {
+  display: block;
+  opacity: 1;
+  transform: translateY(0);
+}
+
+/* Items del dropdown */
+.dropdown-item {
+  display: block;
+  padding: 10px 12px;
+  color: #374151;
+  text-decoration: none;
+  border-radius: 8px;
+  font-weight: 500;
+  white-space: nowrap;
+}
+.dropdown-item:hover {
+  background: #f3f4f6;
+  color: #111827;
+}
+.dropdown-item:focus {
+  outline: 2px solid #1d4ed8;
+  outline-offset: 2px;
+}

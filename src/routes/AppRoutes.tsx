@@ -1,8 +1,8 @@
 import { BrowserRouter, Routes, Route } from 'react-router-dom';
 import Navbar from '../components/navbar/navbar';
 import Home from '../pages/home/home';
-import Agencia from '../pages/agencia/agencia';
-import Servicios from '../pages/servicios/servicios';
+import Servicios from '../pages/agencia/servicios/servicios';
+import Who from '../pages/agencia/who/who';
 import Contacto from '../pages/contacto/contacto';
 
 // Importa cada zona
@@ -27,8 +27,8 @@ export default function AppRoutes() {
       <Navbar />
       <Routes>
         <Route path="/" element={<Home />} />
-        <Route path="/agencia" element={<Agencia />} />
         <Route path="/servicios" element={<Servicios />} />
+        <Route path="/who" element={<Who />} />
         <Route path="/contacto" element={<Contacto />} />
 
         {/* Rutas de zonas */}
