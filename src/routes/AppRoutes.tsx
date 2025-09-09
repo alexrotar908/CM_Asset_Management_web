@@ -20,6 +20,7 @@ import ZonaRouter from './ZonaRoutes';
 import PropertyDataDetails from '../pages/properties/propertyDetail/propertyDataDetail';
 import Madrid from '../pages/zona/espanya/madrid/madrid';
 import Malaga from '../pages/zona/espanya/malaga/malaga';
+import Favoritos from '../pages/favoritos/favoritos';
 
 export default function AppRoutes() {
   return (
@@ -44,6 +45,7 @@ export default function AppRoutes() {
         {/*Rutas login */}
         <Route path="/dashboard" element={<Dashboard />} />
         <Route path="/profile" element={<Profile />} />
+        <Route path="/favoritos" element={<Favoritos />} />
          <Route path="/reset-password" element={<ResetPassword />} />
 
          {/*Rutas propiedades */}

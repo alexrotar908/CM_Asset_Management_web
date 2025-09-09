@@ -1,0 +1,193 @@
+/* Página */
+.favoritos-page {
+  padding-top: 80px;
+  background: #ffffff;
+  min-height: 100vh;
+  color: #111827;
+}
+
+.favoritos-container {
+  max-width: 1120px;
+  margin: 0 auto;
+  padding: 0 24px 48px;
+}
+
+/* Header */
+.fav-header {
+  text-align: center;
+  margin: 24px 0 32px;
+}
+
+.fav-header h1 {
+  font-size: clamp(24px, 3vw, 32px);
+  font-weight: 700;
+  margin-bottom: 8px;
+  color: #111827;
+}
+
+.fav-header p {
+  color: #6b7280;
+}
+
+/* Estados */
+.fav-loading,
+.fav-empty,
+.fav-error {
+  display: grid;
+  place-items: center;
+  padding: 48px 0;
+  color: #6b7280;
+}
+
+.spinner {
+  width: 28px;
+  height: 28px;
+  border: 3px solid #eee;
+  border-top: 3px solid #004080; /* rojo vino */
+  border-radius: 50%;
+  animation: spin 0.8s linear infinite;
+  margin-bottom: 12px;
+}
+
+@keyframes spin {
+  to { transform: rotate(360deg); }
+}
+
+/* Grid */
+.fav-grid {
+  display: grid;
+  grid-template-columns: repeat(12, 1fr);
+  gap: 20px;
+}
+
+@media (max-width: 1024px) {
+  .fav-grid { grid-template-columns: repeat(8, 1fr); }
+}
+@media (max-width: 640px) {
+  .fav-grid { grid-template-columns: repeat(4, 1fr); }
+}
+
+/* Card */
+.fav-card {
+  grid-column: span 4;
+  background: #fff;
+  border-radius: 16px;
+  box-shadow: 0 10px 20px rgba(0,0,0,0.06);
+  overflow: hidden;
+  border: 1px solid #f1f1f1;
+  display: flex;
+  flex-direction: column;
+  transition: transform .15s ease, box-shadow .15s ease;
+}
+
+.fav-card:hover {
+  transform: translateY(-2px);
+  box-shadow: 0 14px 24px rgba(0,0,0,0.08);
+}
+
+@media (max-width: 1024px) {
+  .fav-card { grid-column: span 4; }
+}
+@media (max-width: 640px) {
+  .fav-card { grid-column: span 4; }
+}
+
+/* Imagen */
+.fav-image {
+  width: 100%;
+  aspect-ratio: 16 / 10;
+  background: #f9fafb;
+  cursor: pointer;
+}
+
+.fav-image img {
+  width: 100%;
+  height: 100%;
+  object-fit: cover;
+  display: block;
+}
+
+/* Body */
+.fav-body {
+  padding: 12px 14px 16px;
+  display: flex;
+  flex-direction: column;
+  gap: 8px;
+}
+
+.fav-title {
+  font-size: 16px;
+  font-weight: 600;
+  line-height: 1.25;
+  color: #111827;
+  margin: 2px 0 6px;
+}
+
+.fav-meta {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 8px;
+}
+
+.fav-location {
+  font-size: 13px;
+  color: #6b7280;
+}
+
+.fav-price {
+  font-weight: 700;
+  font-size: 15px;
+  color: #004080; /* rojo vino */
+}
+
+/* Acciones */
+.fav-actions {
+  margin-top: 8px;
+  display: flex;
+  gap: 8px;
+}
+
+.fav-btn {
+  flex: 1;
+  padding: 10px 12px;
+  border-radius: 10px;
+  border: 1px solid transparent;
+  cursor: pointer;
+  font-weight: 600;
+  transition: background .15s ease, color .15s ease, border-color .15s ease, transform .05s ease;
+}
+
+.fav-btn:active { transform: scale(0.99); }
+
+.fav-btn.detail {
+  background: #111827;
+  color: #fff;
+}
+
+.fav-btn.detail:hover {
+  background: #0b1020;
+}
+
+.fav-btn.remove {
+  background: #fff;
+  color: #8b0000;
+  border-color: #e7d6d6;
+}
+
+.fav-btn.remove:hover {
+  background: #fff5f5;
+  border-color: #e8bfbf;
+}
+
+/* Pequeños toques dorados (sutiles) */
+.fav-title::after {
+  content: '';
+  display: block;
+  width: 36px;
+  height: 2px;
+  margin-top: 6px;
+  background: #d4af37; /* dorado */
+  opacity: .18;
+  border-radius: 2px;
+}

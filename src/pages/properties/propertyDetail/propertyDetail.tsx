@@ -1,7 +1,11 @@
 import { useEffect, useMemo, useState } from 'react';
-import { Link } from 'react-router-dom';
+import { Link, useNavigate, useLocation } from 'react-router-dom';
 import './propertyDetail.css';
 import type { PropertyRow, ZonaRow, TipoRow, ImagenRow } from './propertyDataDetail';
+
+// === NUEVO ===
+import { useAuth } from '../../../context/AuthContext';
+import { supabase } from '../../../lib/supabaseClient';
 
 type TabKey = 'description' | 'details' | 'features' | 'address' | 'mortgage' | 'similar';
 
@@ -12,7 +16,7 @@ interface Props {
   imagenes: ImagenRow[];
   similares: Array<PropertyRow & { imagen?: string | null }>;
   priceFmt: (n?: number | null) => string;
-  /** IDs para navegación anterior/siguiente */
+  /** Estos props ya no se usan para Prev/Next; ahora se calculan por contexto **/
   prevId?: string | null;
   nextId?: string | null;
 }
@@ -27,7 +31,7 @@ const toSlug = (s?: string) =>
     .replace(/^-+|-+$/g, '');
 
 export default function PropertyDetails({
-  prop, zona, tipo, imagenes, similares, priceFmt, prevId, nextId
+  prop, zona, tipo, imagenes, similares, priceFmt,
 }: Props) {
   const [activeTab, setActiveTab] = useState<TabKey>('description');
 
@@ -36,6 +40,25 @@ export default function PropertyDetails({
   const [rate, setRate] = useState<number | ''>(3.5);
   const [years, setYears] = useState<number | ''>(12);
 
+  // === Auth / Favoritos ===
+  const { user } = useAuth();
+  const navigate = useNavigate();
+  const [usuarioId, setUsuarioId] = useState<string | null>(null);
+  const [favRowId, setFavRowId] = useState<string | null>(null);
+  const [favLoading, setFavLoading] = useState(false);
+
+  // === Contexto de navegación (area/tipo/fav) ===
+  const location = useLocation();
+  const qs = useMemo(() => new URLSearchParams(location.search), [location.search]);
+  const ctx = (qs.get('ctx') as 'area' | 'tipo' | 'fav' | null) || null;
+  const zonaIdParam = qs.get('zonaId');
+  const tipoIdParam = qs.get('tipoId');
+
+  // Prev/Next calculados por contexto
+  const [navPrevId, setNavPrevId] = useState<string | null>(null);
+  const [navNextId, setNavNextId] = useState<string | null>(null);
+
+  // Calculadora hipoteca
   const monthlyFee = useMemo(() => {
     const total = prop.precio || 0;
     const down = typeof downPct === 'number' ? (total * downPct) / 100 : 0;
@@ -56,7 +79,6 @@ export default function PropertyDetails({
   const bigImg = safeUrls[0];
   const thumbs = safeUrls.slice(1, 5);
 
-  // handler para imágenes rotas
   const onImgError: React.ReactEventHandler<HTMLImageElement> = (e) => {
     const el = e.currentTarget;
     if (!el.dataset.fallback) {
@@ -65,7 +87,7 @@ export default function PropertyDetails({
     }
   };
 
-  // —— breadcrumbs dinámicos (España vs Dubái) ——
+  // —— breadcrumbs dinámicos (España vs Dubái) —— 
   const isDubai = (zona?.ciudad === 'Dubai City') || (zona?.pais === 'UAE');
   const provinceSlug = isDubai ? 'dubai' : toSlug(zona?.ciudad || 'madrid');
   const areaSlug = toSlug(zona?.area || '');
@@ -94,17 +116,161 @@ export default function PropertyDetails({
     setLightboxIndex(i => (i + 1) % safeUrls.length);
   };
 
-  // Navegación con teclado
+  // === obtener id interno usuarios
   useEffect(() => {
-    if (!isLightboxOpen) return;
-    const onKey = (e: KeyboardEvent) => {
-      if (e.key === 'Escape') closeLightbox();
-      if (e.key === 'ArrowLeft') prevImage();
-      if (e.key === 'ArrowRight') nextImage();
+    const getUsuarioId = async () => {
+      if (!user?.id) {
+        setUsuarioId(null);
+        setFavRowId(null);
+        return;
+      }
+      const { data, error } = await supabase
+        .from('usuarios')
+        .select('id')
+        .eq('user_id', user.id)
+        .maybeSingle();
+
+      if (error) {
+        console.error('usuarios fetch error', error);
+        setUsuarioId(null);
+        return;
+      }
+      setUsuarioId(data?.id ?? null);
     };
-    window.addEventListener('keydown', onKey);
-    return () => window.removeEventListener('keydown', onKey);
-  }, [isLightboxOpen, safeUrls.length]);
+    getUsuarioId();
+  }, [user?.id]);
+
+  // === comprobar si es favorito
+  useEffect(() => {
+    const checkFavorite = async () => {
+      if (!usuarioId || !prop?.id) {
+        setFavRowId(null);
+        return;
+      }
+      const { data, error } = await supabase
+        .from('favoritos')
+        .select('id')
+        .eq('usuario_id', usuarioId)
+        .eq('propiedad_id', prop.id)
+        .maybeSingle();
+
+      if (error && error.code !== 'PGRST116') {
+        console.error('favoritos check error', error);
+      }
+      setFavRowId(data?.id ?? null);
+    };
+    checkFavorite();
+  }, [usuarioId, prop?.id]);
+
+  // === toggle favorito
+  const toggleFavorite = async () => {
+    if (!user?.id) {
+      alert('Debes iniciar sesión para guardar favoritos.');
+      navigate('/profile');
+      return;
+    }
+    if (!usuarioId) return;
+
+    try {
+      setFavLoading(true);
+
+      if (!favRowId) {
+        const { data, error } = await supabase
+          .from('favoritos')
+          .insert([{ usuario_id: usuarioId, propiedad_id: prop.id }])
+          .select('id')
+          .maybeSingle();
+
+        if (error) throw error;
+        setFavRowId(data?.id ?? null);
+      } else {
+        const { error } = await supabase
+          .from('favoritos')
+          .delete()
+          .eq('id', favRowId);
+
+        if (error) throw error;
+        setFavRowId(null);
+      }
+    } catch (err) {
+      console.error('toggleFavorite error', err);
+      alert('No se pudo actualizar favoritos. Intenta de nuevo.');
+    } finally {
+      setFavLoading(false);
+    }
+  };
+
+  const isFav = Boolean(favRowId);
+
+  // === Prev/Next según contexto (orden corregido para que Next no quede deshabilitado) ===
+  useEffect(() => {
+    const loadSiblings = async () => {
+      try {
+        let ids: string[] = [];
+        const currentId = String(prop.id);
+
+        if (ctx === 'fav') {
+          // 1) usuario interno
+          const { data: urow, error: uerr } = await supabase
+            .from('usuarios')
+            .select('id')
+            .eq('user_id', user?.id ?? '')
+            .maybeSingle();
+          if (uerr || !urow?.id) { setNavPrevId(null); setNavNextId(null); return; }
+
+          // 2) favoritos en orden reciente (si tienes created_at, úsalo aquí)
+          const { data: favs, error: ferr } = await supabase
+            .from('favoritos')
+            .select('propiedad_id')
+            .eq('usuario_id', urow.id)
+            .order('id', { ascending: false });
+          if (ferr || !favs) { setNavPrevId(null); setNavNextId(null); return; }
+
+          ids = (favs ?? []).map(f => String(f.propiedad_id));
+        } else if (ctx === 'tipo') {
+          const tipoId = tipoIdParam || (prop as any)?.tipo_id;
+          if (!tipoId) { setNavPrevId(null); setNavNextId(null); return; }
+
+          const { data, error } = await supabase
+            .from('propiedades')
+            .select('id, titulo_norm, titulo')
+            .eq('tipo_id', tipoId)
+            .order('titulo_norm', { ascending: true })
+            .order('titulo', { ascending: true });
+          if (error || !data) { setNavPrevId(null); setNavNextId(null); return; }
+
+          ids = (data ?? []).map(r => String(r.id));
+        } else {
+          // default: área
+          const zonaId = zonaIdParam || (prop as any)?.zona_id;
+          if (!zonaId) { setNavPrevId(null); setNavNextId(null); return; }
+
+          const { data, error } = await supabase
+            .from('propiedades')
+            .select('id, titulo_norm, titulo')
+            .eq('zona_id', zonaId)
+            .order('titulo_norm', { ascending: true })
+            .order('titulo', { ascending: true });
+          if (error || !data) { setNavPrevId(null); setNavNextId(null); return; }
+
+          ids = (data ?? []).map(r => String(r.id));
+        }
+
+        const idx = ids.indexOf(currentId);
+        const prev = idx > 0 ? ids[idx - 1] : null;
+        const next = idx !== -1 && idx < ids.length - 1 ? ids[idx + 1] : null;
+
+        setNavPrevId(prev);
+        setNavNextId(next);
+      } catch (e) {
+        console.error('loadSiblings error', e);
+        setNavPrevId(null);
+        setNavNextId(null);
+      }
+    };
+
+    loadSiblings();
+  }, [ctx, zonaIdParam, tipoIdParam, prop.id, user?.id]);
 
   return (
     <>
@@ -135,7 +301,17 @@ export default function PropertyDetails({
             </div>
             <div className="pd-price">{priceFmt(prop.precio)}</div>
             <div className="pd-actions">
-              <button title="Favorito">♡</button>
+              {/* === botón favoritos === */}
+              <button
+                title={isFav ? 'Quitar de favoritos' : 'Añadir a favoritos'}
+                onClick={toggleFavorite}
+                disabled={favLoading}
+                aria-pressed={isFav}
+                className={`pd-fav-btn ${isFav ? 'is-fav' : ''}`}
+              >
+                {isFav ? '♥' : '♡'}
+              </button>
+
               <button title="Compartir">⤴</button>
               <button title="Imprimir">🖨</button>
             </div>
@@ -317,7 +493,7 @@ export default function PropertyDetails({
             <h3>Similar Ads</h3>
             <div className="pd-similar-grid">
               {similares.map(s => (
-                <Link key={s.id} to={`/propertyDetails/${s.id}`} className="pd-similar-card">
+                <Link key={s.id} to={`/propiedad/${s.id}${location.search}`} className="pd-similar-card">
                   <div className="img">
                     <img src={s.imagen_principal || '/placeholder.jpg'} alt={s.titulo} />
                     <div className={`pill pill-${(s.estado_propiedad || 'BUY')?.toLowerCase?.() || 'buy'}`}>
@@ -339,15 +515,15 @@ export default function PropertyDetails({
           </section>
         )}
 
-        {/* Prev/Next navegables */}
+        {/* Prev/Next navegables (contextuales) */}
         <div className="pd-prevnext">
-          {prevId ? (
-            <Link to={`/propertyDetails/${prevId}`}>{'‹ Prev'}</Link>
+          {navPrevId ? (
+            <Link to={`/propiedad/${navPrevId}${location.search}`}>{'‹ Prev'}</Link>
           ) : (
             <span style={{ opacity: 0.5, pointerEvents: 'none' }}>{'‹ Prev'}</span>
           )}
-          {nextId ? (
-            <Link to={`/propertyDetails/${nextId}`}>{'Next ›'}</Link>
+          {navNextId ? (
+            <Link to={`/propiedad/${navNextId}${location.search}`}>{'Next ›'}</Link>
           ) : (
             <span style={{ opacity: 0.5, pointerEvents: 'none' }}>{'Next ›'}</span>
           )}
@@ -392,7 +568,7 @@ export default function PropertyDetails({
         </div>
       </footer>
 
-      {/* -------- Lightbox Markup -------- */}
+      {/* -------- Lightbox -------- */}
       {isLightboxOpen && (
         <div
           className="pd-lightbox"

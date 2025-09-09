@@ -63,6 +63,9 @@ const Navbar: React.FC = () => {
                   <button onClick={() => navigate('/profile')} style={{ color: '#000' }}>
                     Perfil
                   </button>
+                  <button onClick={() => navigate('/favoritos')} style={{ color: '#000' }}>
+                    Favoritos
+                  </button>
                   <button onClick={logout}>Logout</button>
                 </div>
               )}

@@ -17,6 +17,8 @@ interface Property {
   province: string;
   area: string;
   typeSlug?: string;
+  /** ⬅️ NUEVO: necesitamos el tipo_id para construir el contexto */
+  tipoId: string | null;
   featured?: boolean;
   status: Status; // viene de BD (estado_propiedad)
 }
@@ -90,6 +92,8 @@ export default function Apartamento() {
             province: zona?.ciudad ?? 'Madrid',
             area: zona?.area ?? '',
             typeSlug: tipo?.slug ?? undefined,
+            /** ⬅️ NUEVO: guardamos tipo_id */
+            tipoId: p?.tipo_id ? String(p.tipo_id) : null,
             featured: !!p.destacada,
             status,
           } as Property;
@@ -136,9 +140,10 @@ export default function Apartamento() {
   const totalPages = Math.max(1, Math.ceil(sorted.length / propertiesPerPage));
   const paginated = sorted.slice((currentPage - 1) * propertiesPerPage, currentPage * propertiesPerPage);
 
-  // Navegar a la ficha
-  const goDetail = (propId: string) => {
-    navigate(`/propiedad/${propId}`);
+  // Navegar a la ficha (ctx=tipo)
+  const goDetail = (prop: Property) => {
+    const qs = `?ctx=tipo${prop.tipoId ? `&tipoId=${prop.tipoId}` : ''}`;
+    navigate(`/propiedad/${prop.id}${qs}`);
   };
 
   // Evitar que controles del carrusel abran la ficha
@@ -214,10 +219,10 @@ export default function Apartamento() {
             <div
               key={prop.id}
               className="apartamento-card clickable"
-              onClick={() => goDetail(prop.id)}
+              onClick={() => goDetail(prop)}                      
               role="button"
               tabIndex={0}
-              onKeyDown={(e) => (e.key === 'Enter' ? goDetail(prop.id) : undefined)}
+              onKeyDown={(e) => (e.key === 'Enter' ? goDetail(prop) : undefined)}
             >
               <div
                 className="image-container"
@@ -251,7 +256,11 @@ export default function Apartamento() {
 
               <div className="info-container">
                 <h3>
-                  <Link to={`/propiedad/${prop.id}`} onClick={(e) => e.stopPropagation()}>
+                  {/* ⬅️ Link con contexto de tipo */}
+                  <Link
+                    to={`/propiedad/${prop.id}?ctx=tipo${prop.tipoId ? `&tipoId=${prop.tipoId}` : ''}`}
+                    onClick={(e) => e.stopPropagation()}
+                  >
                     {prop.title}
                   </Link>
                 </h3>

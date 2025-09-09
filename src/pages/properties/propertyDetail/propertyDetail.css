@@ -79,6 +79,35 @@
   cursor: pointer;
 }
 
+.pd-actions .pd-fav-btn {
+  font-size: 20px;
+  line-height: 1;
+  width: 36px;
+  height: 36px;
+  border-radius: 10px;
+  border: 1px solid #e5e7eb; /* gris claro como en tus bordes */
+  background: #fff;
+  color: #111827; /* texto principal */
+  cursor: pointer;
+  transition: transform .05s ease, background .15s ease, border-color .15s ease;
+}
+
+.pd-actions .pd-fav-btn:hover {
+  background: #f9fafb;       /* fondo suave */
+  border-color: #d1d5db;     /* gris intermedio */
+}
+
+.pd-actions .pd-fav-btn:active {
+  transform: scale(0.98);
+}
+
+/* Estado favorito */
+.pd-actions .pd-fav-btn.is-fav {
+  color: #2563eb;          /* azul acento de tu UI */
+  border-color: #2563eb;
+}
+
+
 /* Subdireccion */
 .pd-subaddress { 
   color:#666; 
