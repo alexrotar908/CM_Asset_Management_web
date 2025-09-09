@@ -2,7 +2,6 @@
 import React, { useEffect, useState } from 'react';
 import type { FormEvent } from 'react';
 import { useAuth } from '../context/AuthContext';
-import { insertUserData } from './authService';
 import { supabase } from '../lib/supabaseClient';
 import './auth.css';
 
@@ -16,7 +15,8 @@ const LoginModal: React.FC<LoginModalProps> = ({ onClose, onSwitchToRegister }) 
   const [email, setEmail] = useState('');
   const [password, setPassword] = useState('');
   const [rememberMe, setRememberMe] = useState(false);
-  const [isResetMode, setIsResetMode] = useState(false); // ← alterna entre login y reset
+  const [isResetMode, setIsResetMode] = useState(false);
+  const [loading, setLoading] = useState(false);
 
   useEffect(() => {
     const remembered = localStorage.getItem('rememberedEmail');
@@ -30,58 +30,44 @@ const LoginModal: React.FC<LoginModalProps> = ({ onClose, onSwitchToRegister }) 
     e.preventDefault();
 
     if (isResetMode) {
-      // Modo reset password
       if (!email) {
         alert('Por favor, introduce tu email.');
         return;
       }
-
-      const { error } = await supabase.auth.resetPasswordForEmail(email, {
-        redirectTo: 'http://localhost:5173/reset-password',
-      });
-
-      if (error) {
-        alert('Error al enviar el correo');
-      } else {
-        alert('Te hemos enviado un enlace para restablecer la contraseña');
-        setIsResetMode(false); // Vuelve al login después
+      try {
+        setLoading(true);
+        // Redirección dinámica: funciona en local y producción
+        const redirectTo = `${window.location.origin}/reset-password`;
+        const { error } = await supabase.auth.resetPasswordForEmail(email.trim(), { redirectTo });
+        if (error) throw error;
+        alert('Te hemos enviado un enlace para restablecer la contraseña.');
+        setIsResetMode(false);
+      } catch (err: any) {
+        alert(err.message || 'Error al enviar el correo');
+      } finally {
+        setLoading(false);
       }
-
       return;
     }
 
     try {
-      await login(email, password);
+      setLoading(true);
+      await login(email.trim(), password);
 
       if (rememberMe) {
-        localStorage.setItem('rememberedEmail', email);
+        localStorage.setItem('rememberedEmail', email.trim());
       } else {
         localStorage.removeItem('rememberedEmail');
       }
 
-      const nombre = localStorage.getItem('pendingNombre');
-      const telefono = localStorage.getItem('pendingTelefono');
-      const pendingEmail = localStorage.getItem('pendingEmail');
-
-      if (nombre && telefono && pendingEmail) {
-        const {
-          data: { user },
-          error,
-        } = await supabase.auth.getUser();
-
-        if (error || !user) throw new Error('No se pudo obtener el usuario');
-
-        await insertUserData(user.id, pendingEmail, nombre, telefono);
-
-        localStorage.removeItem('pendingNombre');
-        localStorage.removeItem('pendingTelefono');
-        localStorage.removeItem('pendingEmail');
-      }
-
+      // ❌ Ya no hacemos insert en `usuarios` ni usamos pendingNombre/Telefono/Email aquí.
+      // ✅ El AuthContext completa el perfil con pending_* al detectar sesión.
       alert('Sesión iniciada correctamente');
       onClose();
     } catch (error: any) {
       alert(error.message || 'Error al iniciar sesión');
+    } finally {
+      setLoading(false);
     }
   };
 
@@ -108,8 +94,8 @@ const LoginModal: React.FC<LoginModalProps> = ({ onClose, onSwitchToRegister }) 
               <p style={{ fontSize: '14px', marginTop: '10px' }}>
                 Te enviaremos un enlace para restablecer la contraseña.
               </p>
-              <button type="submit" style={{ marginTop: '10px' }}>
-                Enviar enlace
+              <button type="submit" style={{ marginTop: '10px' }} disabled={loading}>
+                {loading ? 'Enviando…' : 'Enviar enlace'}
               </button>
               <div className="switch-link">
                 <span className="link-text" onClick={() => setIsResetMode(false)}>
@@ -141,7 +127,9 @@ const LoginModal: React.FC<LoginModalProps> = ({ onClose, onSwitchToRegister }) 
                 </span>
               </div>
 
-              <button type="submit">Login</button>
+              <button type="submit" disabled={loading}>
+                {loading ? 'Entrando…' : 'Login'}
+              </button>
 
               <div className="switch-link">
                 ¿No tienes cuenta?{' '}

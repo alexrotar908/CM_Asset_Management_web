@@ -1,23 +1,55 @@
-import React, { useState } from 'react';
+import React, { useEffect, useState, useCallback } from 'react';
+import { useSearchParams } from 'react-router-dom';
+import { useAuth } from '../context/AuthContext';
 import LoginModal from './LoginModal';
 import RegisterModal from './RegisterModal';
 
-const AuthWrapper = () => {
-  const [modalType, setModalType] = useState<'login' | 'register' | null>('login');
+type Mode = 'login' | 'register' | null;
+
+const AuthWrapper: React.FC = () => {
+  const { user } = useAuth();
+  const [searchParams, setSearchParams] = useSearchParams();
+  const [mode, setMode] = useState<Mode>(null);
+
+  // Abrir por query param: ?auth=login | register
+  useEffect(() => {
+    const q = searchParams.get('auth');
+    if (q === 'login' || q === 'register') setMode(q);
+  }, [searchParams]);
+
+  // Cerrar al autenticar correctamente
+  useEffect(() => {
+    if (user && mode) {
+      setMode(null);
+      if (searchParams.get('auth')) {
+        const sp = new URLSearchParams(searchParams);
+        sp.delete('auth');
+        setSearchParams(sp, { replace: true });
+      }
+    }
+  }, [user, mode, searchParams, setSearchParams]);
+
+  const close = useCallback(() => {
+    setMode(null);
+    if (searchParams.get('auth')) {
+      const sp = new URLSearchParams(searchParams);
+      sp.delete('auth');
+      setSearchParams(sp, { replace: true });
+    }
+  }, [searchParams, setSearchParams]);
 
   return (
     <>
-      {modalType === 'login' && (
+      {mode === 'login' && (
         <LoginModal
-          onClose={() => setModalType(null)}
-          onSwitchToRegister={() => setModalType('register')}
+          onClose={close}
+          onSwitchToRegister={() => setMode('register')}
         />
       )}
-
-      {modalType === 'register' && (
+      {mode === 'register' && (
         <RegisterModal
-          onClose={() => setModalType(null)}
-          onSwitchToLogin={() => setModalType('login')}
+          onClose={close}
+          onSwitchToLogin={() => setMode('login')}
         />
       )}
     </>
