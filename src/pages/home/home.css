@@ -54,42 +54,38 @@
   min-width: 200px;
 }
 
+/* Botón de buscar */
 .search-form button {
   background-color: #001f3f;
   color: white;
   border: none;
   cursor: pointer;
 }
-
 .search-form button:hover {
   background-color: #004080;
 }
 
-/* CUSTOM MENU IN TYPE SELECT */
-.custom-menu-search {
-  padding: 8px;
-  border-bottom: 1px solid #eee;
-  background-color: white;
-}
-
-.custom-menu-input {
-  width: 100%;
-  padding: 8px 12px;
+/* ====== TYPE SELECT (contador y placeholder) ====== */
+/* El ValueContainer muestra un <span> con estas clases */
+.rs-placeholder {
+  color: #9aa0a6;
   font-size: 14px;
-  border: 1px solid #ccc;
-  border-radius: 4px;
-  margin-bottom: 8px;
-  box-sizing: border-box;
+}
+.rs-count {
+  font-weight: 600;
+  font-size: 14px;
+  color: #0d3b66; /* azul elegante */
 }
 
+/* ====== Botonera dentro del menú del selector ====== */
 .custom-menu-buttons {
   display: flex;
   justify-content: center;
   gap: 8px;
   padding: 8px;
   background-color: white;
+  border-bottom: 1px solid #eee;
 }
-
 .custom-menu-buttons button {
   background-color: #001f3f;
   color: white;
@@ -98,17 +94,19 @@
   border-radius: 4px;
   cursor: pointer;
   font-size: 12px;
-  min-width: 100px;
+  min-width: 120px;
   text-align: center;
 }
-
 .custom-menu-buttons button:hover {
   background-color: #004080;
 }
 
-/* MENU OPTION STYLE */
-.css-1nmdiq5-menu {
+/* (Opcional) Menú un poco más legible */
+.search-form .type-select .react-select__menu,
+.search-form .type-select .css-1nmdiq5-menu {
   font-size: 14px;
+  max-height: 330px;
+  overflow: auto;
 }
 
 /* PROPERTIES SECTION */
@@ -183,7 +181,7 @@
   margin-bottom: 20px;
 }
 
-@media(min-width: 768px) {
+@media (min-width: 768px) {
   .why-choose-us {
     flex-direction: row;
     justify-content: center;

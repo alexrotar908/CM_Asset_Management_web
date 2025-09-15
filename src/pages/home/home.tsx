@@ -16,7 +16,6 @@ export default function Home() {
   const [selectedArea, setSelectedArea] = useState<string>('');
 
   const [selectedTypes, setSelectedTypes] = useState<MultiValue<OptionType>>([]);
-  const [typeSearchTerm, setTypeSearchTerm] = useState<string>('');
 
   // ===== Opciones que vienen de DB =====
   const [countries, setCountries] = useState<string[]>([]);
@@ -39,7 +38,6 @@ export default function Home() {
   const loadTypeGroups = useCallback(async () => {
     setLoadingTypes(true);
 
-    // Traemos todas las ciudades (zonas) y todos los tipos (sin depender de propiedades)
     const [{ data: zonasData, error: zonasErr }, { data: tiposData, error: tiposErr }] =
       await Promise.all([
         supabase.from('zonas').select('pais, ciudad'),
@@ -67,12 +65,12 @@ export default function Home() {
     ).sort((a, b) => a.localeCompare(b));
 
     // Opciones globales (todos los tipos)
-    const allTypeOptions: OptionType[] = tiposData.map((t: any) => ({
+    const allTypeOptions: OptionType[] = (tiposData ?? []).map((t: any) => ({
       value: String(t.id),
       label: (t.nombre ?? '').trim(),
     }));
 
-    // Construimos grupos con TODOS los tipos debajo
+    // Construimos grupos con TODOS los tipos debajo (mismas referencias -> dedupe sencillo)
     const groups: GroupedOption[] = cityGroups.map((label) => ({
       label,
       options: allTypeOptions,
@@ -132,55 +130,49 @@ export default function Home() {
     })();
   }, [selectedCountry, selectedProvince]);
 
-  // =================== Custom Menu para el multiselect de Tipos (agrupado) ===================
-  const CustomMenuList = (props: any) => {
-    // Filtramos por texto, pero respetando grupos y dejando solo los que tengan opciones
-    const groups = (props.options as GroupBase<OptionType>[])
-      .map((grp: any) => {
-        const filteredOpts = (grp.options as OptionType[]).filter((opt) =>
-          opt.label.toLowerCase().includes(typeSearchTerm.toLowerCase())
-        );
-        return { ...grp, options: filteredOpts };
-      })
-      .filter((grp: any) => grp.options && grp.options.length > 0);
+  // =================== Custom components para el multiselect de Tipos ===================
 
+  // 1) Opción con ✓ a la derecha cuando está seleccionada
+  const CustomOption = (props: any) => (
+    <components.Option {...props}>
+      <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center' }}>
+        <span>{props.label}</span>
+        {props.isSelected && <span aria-hidden="true">✓</span>}
+      </div>
+    </components.Option>
+  );
+
+  // 2) ValueContainer que muestra "N selected types" en lugar de chips
+  const CustomValueContainer = (props: any) => {
+    const count = props.getValue().length;
+    return (
+      <components.ValueContainer {...props}>
+        {count === 0 ? (
+          <span className="rs-placeholder">{props.selectProps.placeholder}</span>
+        ) : (
+          <span className="rs-count">{count} selected types</span>
+        )}
+      </components.ValueContainer>
+    );
+  };
+
+  // 3) Menú con botones seleccionar/quitar todo, y dejando que react-select pinte grupos/opciones
+  const CustomMenuList = (props: any) => {
     const handleSelectAll = () => {
-      const flat = groups.flatMap((g: any) => g.options) as OptionType[];
-      setSelectedTypes(flat);
+      // Unimos TODAS las opciones (una por value, sin duplicados)
+      const map = new Map<string, OptionType>();
+      typeGroups.forEach((g) => g.options.forEach((o) => map.set(o.value, o)));
+      setSelectedTypes(Array.from(map.values()));
     };
     const handleClear = () => setSelectedTypes([]);
 
     return (
       <components.MenuList {...props}>
-        <div className="custom-menu-search">
-          <input
-            type="text"
-            placeholder="Buscar tipo..."
-            value={typeSearchTerm}
-            onChange={(e) => setTypeSearchTerm(e.target.value)}
-            className="custom-menu-input"
-          />
-        </div>
         <div className="custom-menu-buttons">
           <button type="button" onClick={handleSelectAll}>Seleccionar todo</button>
           <button type="button" onClick={handleClear}>Quitar selección</button>
         </div>
-
-        {groups.map((grp: any) => (
-          <div key={grp.label}>
-            <components.GroupHeading {...props}>{grp.label}</components.GroupHeading>
-            {grp.options.map((option: OptionType) => (
-              <components.Option
-                key={`${grp.label}-${option.value}`}
-                {...props}
-                data={option}
-                isSelected={(selectedTypes as OptionType[]).some((t) => t.value === option.value)}
-              >
-                {option.label}
-              </components.Option>
-            ))}
-          </div>
-        ))}
+        {props.children}
       </components.MenuList>
     );
   };
@@ -214,7 +206,7 @@ export default function Home() {
             <option value="Rented">Rented</option>
           </select>
 
-          {/* === TIPO (ANTES QUE PAÍS, SIEMPRE VISIBLE Y AGRUPADO) === */}
+          {/* === TIPO (AGRUPADO) === */}
           <div style={{ flex: 1, minWidth: 260 }}>
             <Select<OptionType, true, GroupBase<OptionType>>
               options={typeGroups as unknown as GroupBase<OptionType>[]}
@@ -223,9 +215,17 @@ export default function Home() {
               value={selectedTypes}
               onChange={setSelectedTypes}
               className="type-select"
-              components={{ MenuList: CustomMenuList }}
+              components={{
+                MenuList: CustomMenuList,
+                ValueContainer: CustomValueContainer,
+                Option: CustomOption,
+                MultiValue: () => null, // oculta chips
+              }}
               isSearchable={false}
               filterOption={null}
+              // IMPORTANTE: mantener el menú abierto y mostrar ticks en elementos seleccionados
+              closeMenuOnSelect={false}
+              hideSelectedOptions={false}
               isDisabled={loadingTypes || (typeGroups?.length ?? 0) === 0}
               noOptionsMessage={() => (loadingTypes ? 'Loading...' : 'No hay tipos disponibles')}
             />

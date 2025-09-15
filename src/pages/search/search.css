@@ -1,0 +1,125 @@
+:root { --nav-h: 72px; } /* ajusta a la altura real del Navbar */
+
+/* ===== Layout 2 columnas ===== */
+.qk-search-2col{
+  display: grid;
+  grid-template-columns: minmax(600px,1.2fr) minmax(380px,1fr);
+  height: calc(100vh - var(--nav-h));   /* ocupa la pantalla bajo el navbar */
+  margin: 0;
+  padding: 0;                           /* sin padding para que el mapa “sangre” a la izquierda */
+}
+
+/* ===== Columna izquierda: mapa a sangre y sticky ===== */
+.qk-map-col{ min-height: 100%; }
+.qk-map-sticky{
+  position: sticky;
+  top: var(--nav-h);
+  height: calc(100vh - var(--nav-h));
+}
+.qk-map-sticky .qk-map-wrap{ height:100%; }
+.qk-map-sticky .qk-map{
+  height:100%;
+  width:100%;
+  border-radius:0;      /* como QK: sin radios en el mapa */
+}
+
+/* ===== Columna derecha (filtros + lista) ===== */
+.qk-right-col{
+  display: grid;
+  gap: 18px;
+  padding: 16px;        /* respiración a la derecha como en QK */
+}
+
+/* ===== Encabezado ===== */
+.qk-topbar{
+  display: grid;
+  grid-template-columns: 1fr;
+  align-items: center;
+  gap: 8px;
+}
+.qk-loc-line{ font-size:14px; color:#6b7280; }
+.qk-count{ margin:2px 0 0; font-size:20px; }
+
+/* ===== Panel filtros (si lo usas para bloques simples) ===== */
+.qk-filters{
+  background:#fff;
+  border:1px solid #e5e7eb;
+  border-radius:10px;
+  padding:12px;
+  display:grid;
+  gap:12px;
+}
+.qk-filters-row{ display:flex; flex-wrap:wrap; gap:8px; }
+.qk-filters-row input{
+  border:1px solid #e5e7eb;
+  border-radius:8px;
+  padding:8px 10px;
+  min-width:180px;
+}
+.qk-search-btn{
+  background:#0b2345;
+  color:#fff;
+  border-radius:8px;
+  padding:8px 12px;
+  font-weight:600;
+}
+.qk-save-btn{
+  border:1px solid #e5e7eb;
+  border-radius:8px;
+  padding:8px 12px;
+  background:#f7f7f8;
+}
+.qk-features summary{ cursor:pointer; font-weight:600; }
+.qk-features-grid{
+  display:grid;
+  grid-template-columns:repeat(auto-fill,minmax(180px,1fr));
+  gap:8px;
+  margin-top:8px;
+}
+
+/* ===== Cards resultados ===== */
+.qk-results{
+  display:grid;
+  grid-template-columns:repeat(auto-fill,minmax(300px,1fr));
+  gap:16px;
+}
+.result-card{
+  border:1px solid #e5e7eb;
+  border-radius:10px;
+  overflow:hidden;
+  background:#fff;
+}
+.card-img{ aspect-ratio:4/3; background:#f3f4f6; overflow:hidden; }
+.card-img img{ width:100%; height:100%; object-fit:cover; display:block; }
+.card-body{ padding:12px; display:grid; gap:6px; }
+.price{ font-weight:700; color:#0b2345; }
+.title{ font-weight:600; }
+.loc{ font-size:13px; color:#6b7280; }
+.meta{ display:flex; gap:10px; font-size:13px; color:#374151; }
+.qk-outline{
+  margin-top:6px;
+  border:1px solid #0b2345;
+  color:#0b2345;
+  border-radius:8px;
+  padding:8px 10px;
+  font-weight:600;
+}
+
+/* ===== Paginación / estados ===== */
+.qk-pager{ display:flex; justify-content:center; align-items:center; gap:12px; padding-bottom:8px; }
+.qk-empty{ text-align:center; padding:32px; color:#6b7280; }
+.qk-error{ padding:12px; background:#fee2e2; color:#991b1b; border-radius:8px; }
+
+/* ===== Responsive: mapa arriba y lista abajo ===== */
+@media (max-width: 1100px){
+  .qk-search-2col{
+    grid-template-columns: 1fr;
+    height:auto;
+  }
+  .qk-map-sticky{
+    position:relative;
+    height:420px;
+    top:0;
+  }
+  .qk-right-col{ padding: 12px; }
+}

@@ -1,0 +1,121 @@
+/* Contenedor del panel derecho */
+.qk-filters{
+  background:#fff;
+  border:1px solid #e5e7eb;
+  border-radius:12px;
+  padding:14px;
+  display:grid;
+  gap:12px;
+}
+
+/* Location */
+.qk-field label{
+  display:block;
+  font-size:13px;
+  color:#4b5563;
+  margin-bottom:6px;
+}
+.qk-input{
+  display:flex;
+  align-items:center;
+  gap:8px;
+  border:1px solid #e5e7eb;
+  border-radius:10px;
+  padding:8px 10px;
+}
+.qk-input input{
+  flex:1;
+  border:0;
+  outline:none;
+}
+.qk-geo-btn{
+  border:0;
+  background:#0b2345;
+  color:#fff;
+  border-radius:8px;
+  padding:6px 8px;
+  font-weight:600;
+  cursor:pointer;
+}
+
+/* Radius row */
+.qk-radius-row{
+  display:flex;
+  align-items:center;
+  gap:12px;
+}
+.qk-checkbox{
+  display:flex; align-items:center; gap:8px;
+  font-weight:600;
+}
+.qk-radius-row input[type="range"]{
+  flex:1;
+}
+
+/* Pills row */
+.qk-pills-row{
+  display:flex;
+  flex-wrap:wrap;
+  gap:10px;
+}
+.qk-pill{
+  display:flex;
+  align-items:center;
+  border:1px solid #e5e7eb;
+  border-radius:10px;
+  padding:6px 10px;
+  min-width:170px;
+  background:#fff;
+}
+.qk-pill select,
+.qk-pill input{
+  width:100%;
+  border:0;
+  outline:none;
+  font-size:14px;
+  background:transparent;
+}
+
+/* Price */
+.qk-price-header{
+  font-size:14px;
+  font-weight:600;
+  color:#111827;
+}
+.qk-price-slider{
+  padding:6px 4px 2px;
+}
+
+/* Other features */
+.qk-features summary{
+  cursor:pointer;
+  font-weight:700;
+  list-style:none;
+}
+.qk-features summary::-webkit-details-marker{ display:none; }
+.qk-features-grid{
+  display:grid;
+  grid-template-columns:repeat(auto-fill,minmax(200px,1fr));
+  gap:8px;
+  margin-top:10px;
+}
+.qk-check{
+  display:flex; align-items:center; gap:8px; font-size:14px; color:#374151;
+}
+
+/* Botones */
+.qk-actions{ display:flex; gap:10px; }
+.qk-search-btn{
+  background:#0b2345; color:#fff; border:0; border-radius:10px;
+  padding:10px 16px; font-weight:700; cursor:pointer;
+}
+.qk-save-btn{
+  background:#eef2f7; color:#0b2345; border:1px solid #e5e7eb;
+  border-radius:10px; padding:10px 16px; font-weight:700; cursor:pointer;
+}
+
+/* Ajustes del slider (rc-slider) para que se parezca a QK sin tocar colores del tema) */
+.rc-slider{ padding:10px 6px; }
+.rc-slider-rail{ height:4px; }
+.rc-slider-track{ height:4px; }
+.rc-slider-handle{ width:18px; height:18px; margin-top:-7px; }

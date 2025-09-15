@@ -21,6 +21,7 @@ import PropertyDataDetails from '../pages/properties/propertyDetail/propertyData
 import Madrid from '../pages/zona/espanya/madrid/madrid';
 import Malaga from '../pages/zona/espanya/malaga/malaga';
 import Favoritos from '../pages/favoritos/favoritos';
+import SearchResults from '../pages/search/searchResults';
 
 export default function AppRoutes() {
   return (
@@ -31,6 +32,7 @@ export default function AppRoutes() {
         <Route path="/servicios" element={<Servicios />} />
         <Route path="/who" element={<Who />} />
         <Route path="/contacto" element={<Contacto />} />
+        <Route path="/search" element={<SearchResults />} />
 
         {/* Rutas de zonas */}
         <Route path="/espanya" element={<Espanya />} />
