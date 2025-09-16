@@ -8,7 +8,7 @@
   gap:12px;
 }
 
-/* Location */
+/* Location (estilos generales heredados) */
 .qk-field label{
   display:block;
   font-size:13px;
@@ -40,6 +40,49 @@
   font-weight:600;
   cursor:pointer;
 }
+
+/* ===== Autocomplete Location ===== */
+.qk-loc-wrap{
+  position: relative;
+  /* deja hueco para el botón de geolocalización a la derecha */
+  margin-right: 8px;
+}
+.qk-loc-wrap > input{
+  width: 100%;
+  border:1px solid #e5e7eb;
+  border-radius:10px;
+  padding:8px 10px;
+  background:#fff;
+  font-size:14px;
+}
+.qk-loc-wrap > input::placeholder{
+  color:#9ca3af;   /* gris opaco para "Location" */
+  opacity:1;
+}
+.qk-loc-suggest{
+  position: absolute;
+  top: calc(100% + 6px);
+  left: 0;
+  right: 0;
+  z-index: 10000;
+  background:#fff;
+  border:1px solid #e5e7eb;
+  border-radius:10px;
+  box-shadow: 0 12px 24px rgba(0,0,0,0.12);
+  max-height: 280px;
+  overflow-y: auto;
+}
+.qk-loc-item{
+  width: 100%;
+  text-align: left;
+  padding: 10px 12px;
+  background: #fff;
+  border: 0;
+  cursor: pointer;
+  font-size: 14px;
+}
+.qk-loc-item:hover{ background:#f3f4f6; }
+.qk-loc-item.muted{ color:#6b7280; cursor: default; }
 
 /* Radius row */
 .qk-radius-row{
@@ -83,6 +126,93 @@
 .qk-price-header{ font-size:14px; font-weight:600; color:#111827; }
 .qk-price-slider{ padding:6px 4px 2px; }
 
+/* ===== Slider base reutilizable ===== */
+.qk-range{
+  width:100%;
+}
+
+/* ===== Dual range de precio ===== */
+.qk-price-dual{
+  position: relative;
+  height: 30px;
+}
+
+/* Track gris completo (debajo) */
+.qk-price-dual::before{
+  content:"";
+  position:absolute;
+  top:50%;
+  transform: translateY(-50%);
+  left:0; right:0;
+  height:4px;
+  background:#d1d5db;
+  border-radius: 2px;
+  z-index:1;
+  pointer-events:none;
+}
+
+/* Barra azul solo entre min y max */
+.qk-price-dual::after{
+  content:"";
+  position:absolute;
+  top:50%;
+  transform: translateY(-50%);
+  left: var(--min, 0%);
+  right: calc(100% - var(--max, 100%));
+  height:4px;
+  background:#2a7fff;
+  border-radius: 2px;
+  z-index:2;
+  pointer-events:none;
+}
+
+/* Los dos inputs superpuestos, sin capturar eventos en el track */
+.qk-price-dual .qk-range{
+  position:absolute;
+  inset:0;
+  background:transparent;
+  z-index:3;                 /* por encima de la barra azul */
+  pointer-events:none;       /* el track no captura eventos */
+  -webkit-appearance:none;
+  appearance:none;
+}
+
+/* Track transparente para no tapar la barra azul */
+.qk-price-dual .qk-range::-webkit-slider-runnable-track{
+  height:4px;
+  background:transparent;
+}
+.qk-price-dual .qk-range::-moz-range-track{
+  height:4px;
+  background:transparent;
+}
+.qk-price-dual .qk-range::-moz-range-progress{
+  height:4px;
+  background:transparent;
+}
+
+/* Pulgar (clicable) */
+.qk-price-dual .qk-range::-webkit-slider-thumb{
+  -webkit-appearance:none;
+  height:16px; width:16px;
+  border-radius:50%;
+  background:#2a7fff;
+  border:2px solid #fff;
+  box-shadow:0 1px 4px rgba(0,0,0,.2);
+  margin-top:-6px;           /* centrar sobre track de 4px */
+  pointer-events:auto;       /* el pulgar sí captura eventos */
+  cursor:pointer;
+}
+.qk-price-dual .qk-range::-moz-range-thumb{
+  height:16px; width:16px;
+  border-radius:50%;
+  background:#2a7fff;
+  border:2px solid #fff;
+  box-shadow:0 1px 4px rgba(0,0,0,.2);
+  pointer-events:auto;
+  cursor:pointer;
+}
+
 /* Other features */
 .qk-features summary{ cursor:pointer; font-weight:700; list-style:none; }
 .qk-features summary::-webkit-details-marker{ display:none; }
@@ -112,8 +242,6 @@
 .rc-slider-handle{ width:18px; height:18px; margin-top:-7px; }
 
 /* ====== REACT-SELECT (TYPE) ====== */
-
-/* Barra superior fija dentro del menú de react-select (ahora va DENTRO del MenuList) */
 .rs-toolbar{
   position: sticky;
   top: 0;
@@ -132,8 +260,6 @@
   background: #f7f7f8;
   cursor: pointer;
 }
-
-/* Control (cuadro cerrado) */
 .rs__control{
   min-height:42px !important;
   border:1px solid #e5e7eb !important;
@@ -145,16 +271,10 @@
   border-color:#0b2345 !important;
   box-shadow:0 0 0 2px rgba(11,35,69,0.15) !important;
 }
-
-/* Placeholder / value container */
 .rs__value-container{ padding:0 8px !important; }
 .rs__placeholder{ color:#6b7280; }
-
-/* Quitamos el separador y chips (mostramos contador en el ValueContainer) */
 .rs__indicator-separator{ display:none !important; }
 .rs__multi-value{ display:none !important; }
-
-/* Caja del menú (NO usamos portal) */
 .rs__menu{
   z-index: 9999 !important;
   margin-top:6px;
@@ -164,14 +284,10 @@
   overflow:hidden;
   background:#fff;
 }
-
-/* Lista del menú: SIN padding-top (la barra ya es sticky dentro) */
 .rs__menu-list{
   max-height:320px;
   overflow-y:auto;
 }
-
-/* Opciones */
 .rs__option{ font-size:14px; }
 .rs__option--is-focused{ background:#f3f4f6; }
 .rs__option--is-selected{ background:#e6eefc; color:#0b2345; }
@@ -181,4 +297,23 @@
 .qk-input:focus-within{
   border-color:#c7d2fe;
   box-shadow: 0 0 0 3px rgba(59,130,246,0.1);
+}
+
+/* Flecha en “Other features” */
+.qk-features summary{
+  position: relative;
+  padding-right: 18px;
+}
+.qk-features summary::after{
+  content: '▸';
+  position: absolute;
+  right: 0;
+  top: 0;
+  line-height: 1;
+  transform: translateY(2px);
+  color: #6b7280;
+  font-weight: 700;
+}
+.qk-features[open] summary::after{
+  content: '▾';
 }

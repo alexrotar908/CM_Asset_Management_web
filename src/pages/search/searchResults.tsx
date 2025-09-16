@@ -1,4 +1,4 @@
-import React, { useCallback, useEffect, useMemo, useRef, useState } from 'react';
+import React, { useCallback, useEffect, useMemo, useRef, useState } from 'react'; 
 import { useNavigate, useSearchParams } from 'react-router-dom';
 import { supabase } from '../../lib/supabaseClient';
 import Mapa from './mapa';
@@ -35,14 +35,13 @@ type ZonaRow = {
   area: string | null;
 };
 
-// Version memoizada de RightFilters para evitar re-render innecesario
 const MemoRightFilters = React.memo(RightFilters);
+const PAGE_SIZE = 5;
 
 export default function SearchResults() {
   const [params, setParams] = useSearchParams();
   const navigate = useNavigate();
 
-  // ---- helpers URL ----
   const get = useCallback((k: string) => params.get(k) ?? '', [params]);
   const getNum = useCallback((k: string) => {
     const v = params.get(k);
@@ -53,8 +52,9 @@ export default function SearchResults() {
     return v ? v.split(',').map(s => s.trim()).filter(Boolean) : [];
   }, [params]);
 
-  // ---- estado derivado de la URL ----
-  const operation = (get('op') || 'Rent') as Operation;
+  const opParam = get('op');
+  const operation: Operation | null = opParam ? (opParam as Operation) : null;
+
   const country = get('country');
   const province = get('province');
   const area = get('area');
@@ -65,10 +65,12 @@ export default function SearchResults() {
   const areaMax = getNum('amax');
   const priceMin = getNum('pmin');
   const priceMax = getNum('pmax');
+  const featureKeys = getList('feat');
   const page = Number(get('page') || '1');
-  const pageSize = Number(get('ps') || '12');
 
-  // ---- estado de datos ----
+  const useRadius = (get('use_radius') || '') === 'on';
+  const radiusKm = getNum('rad');
+
   const [loading, setLoading] = useState(false);
   const [markers, setMarkers] = useState<QkMarker[]>([]);
   const [results, setResults] = useState<
@@ -78,11 +80,23 @@ export default function SearchResults() {
   const [hoveredId, setHoveredId] = useState<string | null>(null);
   const [errorMsg, setErrorMsg] = useState<string | null>(null);
 
-  // ---- ANTI-PARPADEO / request id ----
   const reqIdRef = useRef(0);
   const paramsKey = useMemo(() => params.toString(), [params]);
 
-  // ---- filtro por zona (ids de zonas) ----
+  const applyCommonWhere = useCallback((q: any, zonaIds: string[] | null, allowedPropIds: string[] | null) => {
+    if (operation) q = q.ilike('estado_propiedad', operation);
+    if (zonaIds && zonaIds.length) q = q.in('zona_id', zonaIds);
+    if (allowedPropIds && allowedPropIds.length) q = q.in('id', allowedPropIds);
+    if (typeIds.length) q = q.in('tipo_id', typeIds);
+    if (bedroomsMin !== undefined) q = q.gte('dormitorios', bedroomsMin);
+    if (bathroomsMin !== undefined) q = q.gte('banos', bathroomsMin);
+    if (areaMin !== undefined) q = q.gte('metros_cuadrados', areaMin);
+    if (areaMax !== undefined) q = q.lte('metros_cuadrados', areaMax);
+    if (priceMin !== undefined) q = q.gte('precio', priceMin);
+    if (priceMax !== undefined) q = q.lte('precio', priceMax);
+    return q;
+  }, [operation, typeIds, bedroomsMin, bathroomsMin, areaMin, areaMax, priceMin, priceMax]);
+
   const fetchZonaIds = useCallback(async (): Promise<string[] | null> => {
     if (!country && !province && !area) return null;
     const q = supabase.from('zonas').select('id, pais, ciudad, area');
@@ -94,35 +108,35 @@ export default function SearchResults() {
     return (data as ZonaRow[]).map(z => z.id);
   }, [country, province, area]);
 
-  // ---- query principal: propiedades (paginadas) + count ----
-  const fetchProps = useCallback(async (zonaIds: string[] | null) => {
+  const fetchFeatureIds = useCallback(async (features: string[]): Promise<string[] | null> => {
+    if (!features.length) return null;
+    let q: any = supabase.from('property_detail').select('propiedad_id');
+    features.forEach((k) => { q = q.eq(`f_${k}`, true); });
+    const { data, error } = await q;
+    if (error) throw error;
+    return (data || []).map((r: any) => r.propiedad_id as string);
+  }, []);
+
+  const fetchProps = useCallback(async (zonaIds: string[] | null, allowedPropIds: string[] | null) => {
     let q = supabase.from('propiedades').select('*', { count: 'exact' }) as any;
-
-    if (operation) q = q.ilike('estado_propiedad', operation);
-    if (zonaIds && zonaIds.length) q = q.in('zona_id', zonaIds);
-    if (typeIds.length) q = q.in('tipo_id', typeIds);
-    if (bedroomsMin !== undefined) q = q.gte('dormitorios', bedroomsMin);
-    if (bathroomsMin !== undefined) q = q.gte('banos', bathroomsMin);
-    if (areaMin !== undefined) q = q.gte('metros_cuadrados', areaMin);
-    if (areaMax !== undefined) q = q.lte('metros_cuadrados', areaMax);
-    if (priceMin !== undefined) q = q.gte('precio', priceMin);
-    if (priceMax !== undefined) q = q.lte('precio', priceMax);
-
-    // paginación
-    const from = (page - 1) * pageSize;
-    const to = from + pageSize - 1;
+    q = applyCommonWhere(q, zonaIds, allowedPropIds);
+    const from = (page - 1) * PAGE_SIZE;
+    const to = from + PAGE_SIZE - 1;
     q = q.range(from, to);
-
     const { data, error, count } = await q;
     if (error) throw error;
-
     return { rows: (data || []) as PropRow[], count: count || 0 };
-  }, [
-    operation, typeIds, bedroomsMin, bathroomsMin, areaMin, areaMax, priceMin, priceMax,
-    page, pageSize
-  ]);
+  }, [applyCommonWhere, page]);
 
-  // ---- detalles: lat/lng + ciudad/area legible ----
+  const fetchAllForMarkers = useCallback(async (zonaIds: string[] | null, allowedPropIds: string[] | null) => {
+    let q = supabase.from('propiedades')
+      .select('id, titulo, precio, imagen_principal, zona_id, estado_propiedad') as any;
+    q = applyCommonWhere(q, zonaIds, allowedPropIds);
+    const { data, error } = await q;
+    if (error) throw error;
+    return (data || []) as Array<Pick<PropRow, 'id'|'titulo'|'precio'|'imagen_principal'|'zona_id'|'estado_propiedad'>>;
+  }, [applyCommonWhere]);
+
   const fetchDetails = useCallback(async (propIds: string[]) => {
     if (!propIds.length) {
       return { detailById: new Map<string, DetailRow>(), zonasById: new Map<string, ZonaRow>() };
@@ -139,7 +153,6 @@ export default function SearchResults() {
       if (d?.propiedad_id) detailById.set(d.propiedad_id, d as DetailRow);
     });
 
-    // zonas legibles
     const { data: propsZona, error: propsErr } = await supabase
       .from('propiedades')
       .select('id, zona_id')
@@ -163,38 +176,46 @@ export default function SearchResults() {
     return { detailById, zonasById };
   }, []);
 
-  // ---- orquestador ----
   const fetchAll = useCallback(async () => {
     const myId = ++reqIdRef.current;
     setLoading(true);
     setErrorMsg(null);
     try {
       const zonaIds = await fetchZonaIds();
-      const { rows, count } = await fetchProps(zonaIds);
+      const allowedByFeat = await fetchFeatureIds(featureKeys);
 
-      const propIds = rows.map(r => r.id);
-      const { detailById, zonasById } = await fetchDetails(propIds);
+      if (allowedByFeat !== null && allowedByFeat.length === 0) {
+        if (reqIdRef.current === myId) {
+          setResults([]);
+          setTotalCount(0);
+          setMarkers([]);
+        }
+        return;
+      }
+
+      const { rows, count } = await fetchProps(zonaIds, allowedByFeat);
+      const allRowsForMarkers = await fetchAllForMarkers(zonaIds, allowedByFeat);
+
+      const unionIds = Array.from(new Set([...allRowsForMarkers.map(r => r.id), ...rows.map(r => r.id)]));
+      const { detailById, zonasById } = await fetchDetails(unionIds);
 
       const merged = rows.map(r => {
         const z = zonasById.get(r.zona_id || '');
-        return {
-          ...r,
-          ciudad: z?.ciudad ?? null,
-          area: z?.area ?? null,
-        };
+        return { ...r, ciudad: z?.ciudad ?? null, area: z?.area ?? null };
       });
 
-      const markersPage: QkMarker[] = merged
+      const markersAll: QkMarker[] = allRowsForMarkers
         .map((r) => {
           const det = detailById.get(r.id);
           if (!det || det.lat == null || det.lng == null) return null;
+          const z = zonasById.get(r.zona_id || '');
           return {
             id: r.id,
             lat: det.lat,
             lng: det.lng,
             price: r.precio ?? undefined,
             title: r.titulo ?? undefined,
-            city: r.ciudad ?? undefined,
+            city: z?.ciudad ?? undefined,
             image: r.imagen_principal ?? undefined,
           } as QkMarker;
         })
@@ -203,25 +224,20 @@ export default function SearchResults() {
       if (reqIdRef.current === myId) {
         setResults(merged);
         setTotalCount(count);
-        setMarkers(markersPage);
+        setMarkers(markersAll);
       }
     } catch (err: any) {
       console.error(err);
       if (reqIdRef.current === myId) {
         setErrorMsg('There was a problem fetching results.');
-        // No vaciamos results/markers para evitar “flash”.
       }
     } finally {
       if (reqIdRef.current === myId) setLoading(false);
     }
-  }, [fetchZonaIds, fetchProps, fetchDetails]);
+  }, [fetchZonaIds, fetchFeatureIds, featureKeys, fetchProps, fetchAllForMarkers, fetchDetails]);
 
-  // ---- efecto principal (clave derivada de params) ----
-  useEffect(() => {
-    void fetchAll();
-  }, [fetchAll, paramsKey]);
+  useEffect(() => { void fetchAll(); }, [fetchAll, paramsKey]);
 
-  // ---- paginación ----
   const onPage = (dir: 'prev' | 'next') => {
     const p = Number(params.get('page') || '1');
     const next = dir === 'prev' ? Math.max(1, p - 1) : p + 1;
@@ -232,15 +248,22 @@ export default function SearchResults() {
   };
 
   const totalPages = useMemo(
-    () => Math.max(1, Math.ceil(totalCount / pageSize)),
-    [totalCount, pageSize]
+    () => Math.max(1, Math.ceil(totalCount / PAGE_SIZE)),
+    [totalCount]
   );
 
-  // ---- callback estable para RightFilters (evita recrearlo en cada render) ----
   const onApplyCb = useCallback(() => {
     const el = document.querySelector('.qk-results');
     if (el) el.scrollIntoView({ behavior: 'smooth', block: 'start' });
   }, []);
+
+  const badgeFor = (estado: string | null) => {
+    const v = (estado || '').toLowerCase();
+    if (v === 'buy')   return <span className="qk-badge qk-badge--buy">BUY</span>;
+    if (v === 'rent')  return <span className="qk-badge qk-badge--rent">RENT</span>;
+    if (v === 'rented')return <span className="qk-badge qk-badge--rented">RENTED</span>;
+    return null;
+  };
 
   return (
     <div className="qk-search-2col">
@@ -251,9 +274,10 @@ export default function SearchResults() {
             markers={markers}
             activeId={hoveredId}
             onMarkerHover={setHoveredId}
-            onMarkerClick={(id) => navigate(`/property/${id}`)}
+            onMarkerClick={(id) => navigate(`/propiedad/${id}`)}
             showFullscreenButton
             fitToMarkers
+            viewportRadiusKm={useRadius ? (radiusKm ?? 20) : null}
           />
         </div>
       </aside>
@@ -271,10 +295,12 @@ export default function SearchResults() {
           </div>
         </div>
 
-        {/* Filtros completos */}
         <MemoRightFilters onApply={onApplyCb} />
 
         {errorMsg && <div className="qk-error">{errorMsg}</div>}
+
+        {/* Contador visible junto a la lista */}
+        <div className="qk-results-count">{totalCount} results</div>
 
         {/* Lista de resultados */}
         <section className="qk-results">
@@ -286,6 +312,7 @@ export default function SearchResults() {
               onMouseLeave={() => setHoveredId(null)}
             >
               <div className="card-img">
+                {badgeFor(r.estado_propiedad)}
                 <img
                   src={r.imagen_principal || '/placeholder.jpg'}
                   alt={r.titulo || 'Property'}
@@ -307,7 +334,7 @@ export default function SearchResults() {
                 <button
                   className="qk-outline"
                   type="button"
-                  onClick={() => navigate(`/property/${r.id}`)}
+                  onClick={() => navigate(`/propiedad/${r.id}`)}
                 >
                   Ver detalle
                 </button>
@@ -322,9 +349,9 @@ export default function SearchResults() {
 
         {/* Paginación */}
         <div className="qk-pager">
-          <button disabled={loading || page <= 1} onClick={() => onPage('prev')}>‹ Prev</button>
+          <button disabled={page <= 1} onClick={() => onPage('prev')}>‹ Prev</button>
           <span>Page {page} / {totalPages}</span>
-          <button disabled={loading || page >= totalPages} onClick={() => onPage('next')}>Next ›</button>
+          <button disabled={page >= totalPages} onClick={() => onPage('next')}>Next ›</button>
         </div>
       </main>
     </div>
