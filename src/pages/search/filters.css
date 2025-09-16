@@ -22,11 +22,14 @@
   border:1px solid #e5e7eb;
   border-radius:10px;
   padding:8px 10px;
+  background:#fff;
 }
 .qk-input input{
   flex:1;
   border:0;
   outline:none;
+  background:transparent;
+  font-size:14px;
 }
 .qk-geo-btn{
   border:0;
@@ -44,20 +47,11 @@
   align-items:center;
   gap:12px;
 }
-.qk-checkbox{
-  display:flex; align-items:center; gap:8px;
-  font-weight:600;
-}
-.qk-radius-row input[type="range"]{
-  flex:1;
-}
+.qk-checkbox{ display:flex; align-items:center; gap:8px; font-weight:600; }
+.qk-radius-row input[type="range"]{ flex:1; }
 
 /* Pills row */
-.qk-pills-row{
-  display:flex;
-  flex-wrap:wrap;
-  gap:10px;
-}
+.qk-pills-row{ display:flex; flex-wrap:wrap; gap:10px; }
 .qk-pill{
   display:flex;
   align-items:center;
@@ -65,8 +59,11 @@
   border-radius:10px;
   padding:6px 10px;
   min-width:170px;
+  min-height:40px;
   background:#fff;
 }
+
+/* Entradas nativas dentro de las pastillas */
 .qk-pill select,
 .qk-pill input{
   width:100%;
@@ -74,24 +71,20 @@
   outline:none;
   font-size:14px;
   background:transparent;
+  -webkit-appearance:none;
+  -moz-appearance:none;
+  appearance:none;
+  height:38px;
+  line-height:38px;
+  padding:0 6px;
 }
 
 /* Price */
-.qk-price-header{
-  font-size:14px;
-  font-weight:600;
-  color:#111827;
-}
-.qk-price-slider{
-  padding:6px 4px 2px;
-}
+.qk-price-header{ font-size:14px; font-weight:600; color:#111827; }
+.qk-price-slider{ padding:6px 4px 2px; }
 
 /* Other features */
-.qk-features summary{
-  cursor:pointer;
-  font-weight:700;
-  list-style:none;
-}
+.qk-features summary{ cursor:pointer; font-weight:700; list-style:none; }
 .qk-features summary::-webkit-details-marker{ display:none; }
 .qk-features-grid{
   display:grid;
@@ -99,9 +92,7 @@
   gap:8px;
   margin-top:10px;
 }
-.qk-check{
-  display:flex; align-items:center; gap:8px; font-size:14px; color:#374151;
-}
+.qk-check{ display:flex; align-items:center; gap:8px; font-size:14px; color:#374151; }
 
 /* Botones */
 .qk-actions{ display:flex; gap:10px; }
@@ -114,8 +105,80 @@
   border-radius:10px; padding:10px 16px; font-weight:700; cursor:pointer;
 }
 
-/* Ajustes del slider (rc-slider) para que se parezca a QK sin tocar colores del tema) */
+/* Ajustes del slider (rc-slider) */
 .rc-slider{ padding:10px 6px; }
 .rc-slider-rail{ height:4px; }
 .rc-slider-track{ height:4px; }
 .rc-slider-handle{ width:18px; height:18px; margin-top:-7px; }
+
+/* ====== REACT-SELECT (TYPE) ====== */
+
+/* Barra superior fija dentro del menú de react-select (ahora va DENTRO del MenuList) */
+.rs-toolbar{
+  position: sticky;
+  top: 0;
+  z-index: 1;
+  display: flex;
+  gap: 8px;
+  padding: 6px 8px;
+  background: #fff;
+  border-bottom: 1px solid #e5e7eb;
+}
+.rs-toolbar button{
+  border: 1px solid #e5e7eb;
+  border-radius: 6px;
+  padding: 6px 8px;
+  font-size: 12px;
+  background: #f7f7f8;
+  cursor: pointer;
+}
+
+/* Control (cuadro cerrado) */
+.rs__control{
+  min-height:42px !important;
+  border:1px solid #e5e7eb !important;
+  border-radius:10px !important;
+  box-shadow:none !important;
+  background:#fff !important;
+}
+.rs__control--is-focused{
+  border-color:#0b2345 !important;
+  box-shadow:0 0 0 2px rgba(11,35,69,0.15) !important;
+}
+
+/* Placeholder / value container */
+.rs__value-container{ padding:0 8px !important; }
+.rs__placeholder{ color:#6b7280; }
+
+/* Quitamos el separador y chips (mostramos contador en el ValueContainer) */
+.rs__indicator-separator{ display:none !important; }
+.rs__multi-value{ display:none !important; }
+
+/* Caja del menú (NO usamos portal) */
+.rs__menu{
+  z-index: 9999 !important;
+  margin-top:6px;
+  border:1px solid #e5e7eb;
+  border-radius:12px;
+  box-shadow: 0 12px 24px rgba(0,0,0,0.12);
+  overflow:hidden;
+  background:#fff;
+}
+
+/* Lista del menú: SIN padding-top (la barra ya es sticky dentro) */
+.rs__menu-list{
+  max-height:320px;
+  overflow-y:auto;
+}
+
+/* Opciones */
+.rs__option{ font-size:14px; }
+.rs__option--is-focused{ background:#f3f4f6; }
+.rs__option--is-selected{ background:#e6eefc; color:#0b2345; }
+
+/* Enfoque accesible de inputs y pastillas */
+.qk-pill:focus-within,
+.qk-input:focus-within{
+  border-color:#c7d2fe;
+  box-shadow: 0 0 0 3px rgba(59,130,246,0.1);
+}

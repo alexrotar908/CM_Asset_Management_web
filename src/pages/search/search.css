@@ -123,3 +123,11 @@
   }
   .qk-right-col{ padding: 12px; }
 }
+
+/* ===== Micro-ajustes visuales extra (no destructivos) ===== */
+
+/* Evita “saltos” por scroll en el panel derecho */
+.qk-right-col { overflow: visible; }
+
+/* Mejor contraste del botón outline para cards (hover) */
+.qk-outline:hover { background:#0b2345; color:#fff; }

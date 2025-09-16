@@ -1,4 +1,4 @@
-import { useCallback, useEffect, useMemo, useRef, useState } from 'react';
+import React, { useCallback, useEffect, useMemo, useRef, useState } from 'react';
 import { useNavigate, useSearchParams } from 'react-router-dom';
 import { supabase } from '../../lib/supabaseClient';
 import Mapa from './mapa';
@@ -35,11 +35,14 @@ type ZonaRow = {
   area: string | null;
 };
 
+// Version memoizada de RightFilters para evitar re-render innecesario
+const MemoRightFilters = React.memo(RightFilters);
+
 export default function SearchResults() {
   const [params, setParams] = useSearchParams();
   const navigate = useNavigate();
 
-  // helpers
+  // ---- helpers URL ----
   const get = useCallback((k: string) => params.get(k) ?? '', [params]);
   const getNum = useCallback((k: string) => {
     const v = params.get(k);
@@ -50,7 +53,7 @@ export default function SearchResults() {
     return v ? v.split(',').map(s => s.trim()).filter(Boolean) : [];
   }, [params]);
 
-  // estado derivado de URL
+  // ---- estado derivado de la URL ----
   const operation = (get('op') || 'Rent') as Operation;
   const country = get('country');
   const province = get('province');
@@ -65,7 +68,7 @@ export default function SearchResults() {
   const page = Number(get('page') || '1');
   const pageSize = Number(get('ps') || '12');
 
-  // datos
+  // ---- estado de datos ----
   const [loading, setLoading] = useState(false);
   const [markers, setMarkers] = useState<QkMarker[]>([]);
   const [results, setResults] = useState<
@@ -75,11 +78,11 @@ export default function SearchResults() {
   const [hoveredId, setHoveredId] = useState<string | null>(null);
   const [errorMsg, setErrorMsg] = useState<string | null>(null);
 
-  // ANTI-PARPADEO
+  // ---- ANTI-PARPADEO / request id ----
   const reqIdRef = useRef(0);
   const paramsKey = useMemo(() => params.toString(), [params]);
 
-  // zonas -> ids
+  // ---- filtro por zona (ids de zonas) ----
   const fetchZonaIds = useCallback(async (): Promise<string[] | null> => {
     if (!country && !province && !area) return null;
     const q = supabase.from('zonas').select('id, pais, ciudad, area');
@@ -91,7 +94,7 @@ export default function SearchResults() {
     return (data as ZonaRow[]).map(z => z.id);
   }, [country, province, area]);
 
-  // propiedades
+  // ---- query principal: propiedades (paginadas) + count ----
   const fetchProps = useCallback(async (zonaIds: string[] | null) => {
     let q = supabase.from('propiedades').select('*', { count: 'exact' }) as any;
 
@@ -105,19 +108,21 @@ export default function SearchResults() {
     if (priceMin !== undefined) q = q.gte('precio', priceMin);
     if (priceMax !== undefined) q = q.lte('precio', priceMax);
 
+    // paginación
     const from = (page - 1) * pageSize;
     const to = from + pageSize - 1;
     q = q.range(from, to);
 
     const { data, error, count } = await q;
     if (error) throw error;
+
     return { rows: (data || []) as PropRow[], count: count || 0 };
   }, [
     operation, typeIds, bedroomsMin, bathroomsMin, areaMin, areaMax, priceMin, priceMax,
     page, pageSize
   ]);
 
-  // detalles
+  // ---- detalles: lat/lng + ciudad/area legible ----
   const fetchDetails = useCallback(async (propIds: string[]) => {
     if (!propIds.length) {
       return { detailById: new Map<string, DetailRow>(), zonasById: new Map<string, ZonaRow>() };
@@ -134,13 +139,17 @@ export default function SearchResults() {
       if (d?.propiedad_id) detailById.set(d.propiedad_id, d as DetailRow);
     });
 
+    // zonas legibles
     const { data: propsZona, error: propsErr } = await supabase
       .from('propiedades')
       .select('id, zona_id')
       .in('id', propIds);
     if (propsErr) throw propsErr;
 
-    const zonaIds = Array.from(new Set((propsZona || []).map((p: any) => p.zona_id).filter(Boolean)));
+    const zonaIds = Array.from(
+      new Set((propsZona || []).map((p: any) => p.zona_id).filter(Boolean))
+    );
+
     let zonasById = new Map<string, ZonaRow>();
     if (zonaIds.length) {
       const { data: zonas, error: zonasErr } = await supabase
@@ -154,7 +163,7 @@ export default function SearchResults() {
     return { detailById, zonasById };
   }, []);
 
-  // orquestador con requestId
+  // ---- orquestador ----
   const fetchAll = useCallback(async () => {
     const myId = ++reqIdRef.current;
     setLoading(true);
@@ -168,7 +177,11 @@ export default function SearchResults() {
 
       const merged = rows.map(r => {
         const z = zonasById.get(r.zona_id || '');
-        return { ...r, ciudad: z?.ciudad ?? null, area: z?.area ?? null };
+        return {
+          ...r,
+          ciudad: z?.ciudad ?? null,
+          area: z?.area ?? null,
+        };
       });
 
       const markersPage: QkMarker[] = merged
@@ -203,12 +216,12 @@ export default function SearchResults() {
     }
   }, [fetchZonaIds, fetchProps, fetchDetails]);
 
-  // efecto principal anti-parpadeo
+  // ---- efecto principal (clave derivada de params) ----
   useEffect(() => {
     void fetchAll();
   }, [fetchAll, paramsKey]);
 
-  // paginación
+  // ---- paginación ----
   const onPage = (dir: 'prev' | 'next') => {
     const p = Number(params.get('page') || '1');
     const next = dir === 'prev' ? Math.max(1, p - 1) : p + 1;
@@ -223,9 +236,15 @@ export default function SearchResults() {
     [totalCount, pageSize]
   );
 
+  // ---- callback estable para RightFilters (evita recrearlo en cada render) ----
+  const onApplyCb = useCallback(() => {
+    const el = document.querySelector('.qk-results');
+    if (el) el.scrollIntoView({ behavior: 'smooth', block: 'start' });
+  }, []);
+
   return (
     <div className="qk-search-2col">
-      {/* Columna izquierda: mapa */}
+      {/* COLUMNA IZQUIERDA: MAPA */}
       <aside className="qk-map-col">
         <div className="qk-map-sticky">
           <Mapa
@@ -239,7 +258,7 @@ export default function SearchResults() {
         </div>
       </aside>
 
-      {/* Columna derecha: filtros + resultados */}
+      {/* COLUMNA DERECHA: FILTROS + LISTA */}
       <main className="qk-right-col">
         <div className="qk-topbar">
           <div>
@@ -252,18 +271,12 @@ export default function SearchResults() {
           </div>
         </div>
 
-        {/* Filtros completos (location/radius/zona/tipo/…/precio/otros) */}
-        <RightFilters
-          onApply={() => {
-            // Si quieres, al aplicar filtros hacemos scroll suave al inicio de la lista
-            const el = document.querySelector('.qk-results');
-            if (el) el.scrollIntoView({ behavior: 'smooth', block: 'start' });
-          }}
-        />
+        {/* Filtros completos */}
+        <MemoRightFilters onApply={onApplyCb} />
 
         {errorMsg && <div className="qk-error">{errorMsg}</div>}
 
-        {/* Lista resultados */}
+        {/* Lista de resultados */}
         <section className="qk-results">
           {results.map((r) => (
             <article
