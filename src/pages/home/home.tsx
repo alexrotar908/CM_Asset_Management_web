@@ -1,5 +1,6 @@
 import './home.css';
 import { useEffect, useMemo, useState, useCallback } from 'react';
+import { useNavigate } from 'react-router-dom';
 import Select, { components } from 'react-select';
 import type { MultiValue, GroupBase } from 'react-select';
 import { supabase } from '../../lib/supabaseClient';
@@ -16,6 +17,12 @@ export default function Home() {
   const [selectedArea, setSelectedArea] = useState<string>('');
 
   const [selectedTypes, setSelectedTypes] = useState<MultiValue<OptionType>>([]);
+
+  // Estado para Bedrooms (mínimo) y Max Price (ambos selects ya existían)
+  const [bedroomsMin, setBedroomsMin] = useState<string>(''); // '1'...'5+'
+  const [maxPrice, setMaxPrice] = useState<string>('');       // p.ej. '100.000€'
+
+  const navigate = useNavigate();
 
   // ===== Opciones que vienen de DB =====
   const [countries, setCountries] = useState<string[]>([]);
@@ -34,7 +41,7 @@ export default function Home() {
       )
     ).sort((a, b) => a.localeCompare(b));
 
-  // =================== TIPOS AGRUPADOS (INDEPENDIENTE DE FILTROS) ===================
+  // =================== TIPOS AGRUPADOS ===================
   const loadTypeGroups = useCallback(async () => {
     setLoadingTypes(true);
 
@@ -50,7 +57,6 @@ export default function Home() {
       return;
     }
 
-    // Grupos únicos por (pais, ciudad)
     const cityGroups = Array.from(
       new Map(
         zonasData
@@ -64,13 +70,11 @@ export default function Home() {
       ).keys()
     ).sort((a, b) => a.localeCompare(b));
 
-    // Opciones globales (todos los tipos)
     const allTypeOptions: OptionType[] = (tiposData ?? []).map((t: any) => ({
       value: String(t.id),
       label: (t.nombre ?? '').trim(),
     }));
 
-    // Construimos grupos con TODOS los tipos debajo (mismas referencias -> dedupe sencillo)
     const groups: GroupedOption[] = cityGroups.map((label) => ({
       label,
       options: allTypeOptions,
@@ -132,7 +136,6 @@ export default function Home() {
 
   // =================== Custom components para el multiselect de Tipos ===================
 
-  // 1) Opción con ✓ a la derecha cuando está seleccionada
   const CustomOption = (props: any) => (
     <components.Option {...props}>
       <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center' }}>
@@ -142,7 +145,6 @@ export default function Home() {
     </components.Option>
   );
 
-  // 2) ValueContainer que muestra "N selected types" en lugar de chips
   const CustomValueContainer = (props: any) => {
     const count = props.getValue().length;
     return (
@@ -156,10 +158,8 @@ export default function Home() {
     );
   };
 
-  // 3) Menú con botones seleccionar/quitar todo, y dejando que react-select pinte grupos/opciones
   const CustomMenuList = (props: any) => {
     const handleSelectAll = () => {
-      // Unimos TODAS las opciones (una por value, sin duplicados)
       const map = new Map<string, OptionType>();
       typeGroups.forEach((g) => g.options.forEach((o) => map.set(o.value, o)));
       setSelectedTypes(Array.from(map.values()));
@@ -177,12 +177,50 @@ export default function Home() {
     );
   };
 
-  // (opcional) valores estáticos por ahora
   const bedroomOptions = useMemo(() => ['1', '2', '3', '4', '5+'], []);
   const priceOptions = useMemo(
     () => ['5.000€', '10.000€', '50.000€', '100.000€', '500.000€', '1.000.000€'],
     []
   );
+
+  // ====== Submit → /search con querystring compatible con Search/RightFilters ======
+  const onSubmit = (e: React.FormEvent) => {
+    e.preventDefault();
+
+    const qs = new URLSearchParams();
+    qs.set('page', '1');
+
+    // Operación (para que aparezca seleccionada en RightFilters)
+    if (operation) qs.set('op', operation);
+
+    // Tipos (ids, separados por coma)
+    if (selectedTypes.length) {
+      qs.set('types', selectedTypes.map(t => t.value).join(','));
+    }
+
+    // Zona
+    if (selectedCountry) qs.set('country', selectedCountry);
+    if (selectedProvince) qs.set('province', selectedProvince);
+    if (selectedArea) qs.set('area', selectedArea);
+
+    // Texto de location (solo para mostrar en el input de Search)
+    const locText = [selectedArea, selectedProvince, selectedCountry].filter(Boolean).join(', ');
+    if (locText) qs.set('loc', locText);
+
+    // Bedrooms min
+    if (bedroomsMin) {
+      const bmin = bedroomsMin.replace('+', '');
+      qs.set('bmin', bmin);
+    }
+
+    // Max price → número (sin puntos/€)
+    if (maxPrice) {
+      const pmax = parseInt(maxPrice.replace(/\D/g, ''), 10);
+      if (Number.isFinite(pmax)) qs.set('pmax', String(pmax));
+    }
+
+    navigate(`/search?${qs.toString()}`);
+  };
 
   return (
     <div className="home-container">
@@ -198,7 +236,7 @@ export default function Home() {
 
       {/* ===== BUSCADOR ===== */}
       <section className="search-section">
-        <form className="search-form" onSubmit={(e) => e.preventDefault()}>
+        <form className="search-form" onSubmit={onSubmit}>
           {/* Operación */}
           <select value={operation} onChange={(e) => setOperation(e.target.value as any)}>
             <option value="Buy">Buy</option>
@@ -219,11 +257,10 @@ export default function Home() {
                 MenuList: CustomMenuList,
                 ValueContainer: CustomValueContainer,
                 Option: CustomOption,
-                MultiValue: () => null, // oculta chips
+                MultiValue: () => null,
               }}
               isSearchable={false}
               filterOption={null}
-              // IMPORTANTE: mantener el menú abierto y mostrar ticks en elementos seleccionados
               closeMenuOnSelect={false}
               hideSelectedOptions={false}
               isDisabled={loadingTypes || (typeGroups?.length ?? 0) === 0}
@@ -270,10 +307,8 @@ export default function Home() {
           </select>
 
           {/* Dormitorios */}
-          <select defaultValue="">
-            <option value="" disabled>
-              Bedrooms
-            </option>
+          <select value={bedroomsMin} onChange={(e) => setBedroomsMin(e.target.value)}>
+            <option value="">Bedrooms</option>
             {bedroomOptions.map((b) => (
               <option key={b} value={b}>
                 {b}
@@ -282,10 +317,8 @@ export default function Home() {
           </select>
 
           {/* Precio Máximo */}
-          <select defaultValue="">
-            <option value="" disabled>
-              Max Price
-            </option>
+          <select value={maxPrice} onChange={(e) => setMaxPrice(e.target.value)}>
+            <option value="">Max Price</option>
             {priceOptions.map((p) => (
               <option key={p} value={p}>
                 {p}
