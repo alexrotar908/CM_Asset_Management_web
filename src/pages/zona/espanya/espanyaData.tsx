@@ -1,9 +1,10 @@
+// src/pages/zona/espanya/espanyaData.tsx
 import { useEffect, useMemo, useState } from 'react';
 import type { MultiValue } from 'react-select';
 import { supabase } from '../../../lib/supabaseClient';
 
 export interface OptionType {
-  value: string;
+  value: string; // usamos ID de tipo (uuid o string) para ser compatible con /search
   label: string;
 }
 
@@ -17,36 +18,45 @@ export interface Property {
   size: number;
   province: string;
   area?: string;
+  typeId?: string | null;   // <- para filtrar por tipo (id)
   typeSlug?: string;
 }
 
 type ProvincesMap = Record<string, string[]>;
 type AreasMap = Record<string, string[]>;
 
+const COUNTRY_ES = 'España';
+
 export const useEspanyaLogic = () => {
-  // FILTROS
+  // ===== FILTROS DEL BUSCADOR (alineado con Home/Search) =====
+  const [operation, setOperation] = useState<'Buy' | 'Rent' | 'Rented' | ''>(''); // '' = All
   const [selectedProvince, setSelectedProvince] = useState<string>('');
+  const [selectedArea, setSelectedArea] = useState<string>('');
   const [selectedTypes, setSelectedTypes] = useState<MultiValue<OptionType>>([]);
+  const [bedroomsMin, setBedroomsMin] = useState<string>(''); // '1'...'5+'
+  const [maxPrice, setMaxPrice] = useState<string>('');        // ej. '100.000€'
+
+  // Búsqueda de texto para el listado local de esta página
   const [searchTerm, setSearchTerm] = useState<string>('');
 
-  // PAGINACIONES INDEPENDIENTES
-  const [zonePage, setZonePage] = useState<number>(1);        // Zonas
-  const [typePage, setTypePage] = useState<number>(1);        // Types (NUEVA)
+  // ===== PAGINACIONES INDEPENDIENTES =====
+  const [zonePage, setZonePage] = useState<number>(1);         // Zonas
+  const [typePage, setTypePage] = useState<number>(1);         // Types (tarjetas)
   const [propertyPage, setPropertyPage] = useState<number>(1); // Propiedades
 
-  // ESTADO BD
+  // ===== ESTADO BD =====
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState<string | null>(null);
 
   const [allProperties, setAllProperties] = useState<Property[]>([]);
   const [typeOptions, setTypeOptions] = useState<OptionType[]>([]);
-  const [provincesByCountry, setProvincesByCountry] = useState<ProvincesMap>({ Spain: [] });
+  const [provincesByCountry, setProvincesByCountry] = useState<ProvincesMap>({ [COUNTRY_ES]: [] });
   const [areasByProvince, setAreasByProvince] = useState<AreasMap>({});
 
   // Tamaño de página para propiedades
   const propertiesPerPage = 3;
 
-  // ---------- DATA ESTÁTICA ----------
+  // ---------- DATA ESTÁTICA (tarjetas) ----------
   const zonesData: Record<string, { name: string; slug: string; image: string; link: string }[]> = {
     Madrid: [
       { name: 'Centro', slug: 'centro', image: '/images_espanya/centro_madrid.jpg', link: '/zone/madrid/centro' },
@@ -116,31 +126,41 @@ export const useEspanyaLogic = () => {
         setLoading(true);
         setError(null);
 
+        // Provincias/Áreas solo de España
         const { data: zonas, error: zonasErr } = await supabase
           .from('zonas')
           .select('pais, ciudad, area')
-          .eq('pais', 'España');
+          .eq('pais', COUNTRY_ES);
         if (zonasErr) throw zonasErr;
 
         if (isMounted && zonas) {
-          const provinces = Array.from(new Set(zonas.map(z => z.ciudad))).sort();
+          const provinces = Array.from(new Set(zonas.map(z => (z.ciudad ?? '').trim()).filter(Boolean))).sort();
           const areasMap: AreasMap = {};
           provinces.forEach(p => {
-            areasMap[p] = Array.from(new Set(zonas.filter(z => z.ciudad === p).map(z => z.area))).sort();
+            areasMap[p] = Array.from(
+              new Set(zonas.filter(z => (z.ciudad ?? '').trim() === p).map(z => (z.area ?? '').trim()).filter(Boolean))
+            ).sort();
           });
-          setProvincesByCountry({ Spain: provinces });
+          setProvincesByCountry({ [COUNTRY_ES]: provinces });
           setAreasByProvince(areasMap);
         }
 
+        // Tipos → usamos ID + nombre (para /search types=ids)
         const { data: tipos, error: tiposErr } = await supabase
           .from('tipos')
-          .select('nombre, slug');
+          .select('id, nombre, slug');
         if (tiposErr) throw tiposErr;
 
         if (isMounted && tipos) {
-          setTypeOptions(tipos.map(t => ({ value: t.nombre, label: t.nombre })) as OptionType[]);
+          setTypeOptions(
+            (tipos || []).map((t: any) => ({
+              value: String(t.id),
+              label: (t.nombre ?? '').trim(),
+            }))
+          );
         }
 
+        // Propiedades (para listado local en esta página)
         const { data: props, error: propsErr } = await supabase
           .from('propiedades')
           .select(`
@@ -154,13 +174,13 @@ export const useEspanyaLogic = () => {
             zona_id,
             tipo_id,
             zonas:zona_id ( ciudad, area ),
-            tipos:tipo_id ( slug ),
+            tipos:tipo_id ( id, slug ),
             imagenes_propiedad!imagenes_propiedad_propiedad_id_fkey ( url, categoria )
           `);
         if (propsErr) throw propsErr;
 
         if (isMounted && props) {
-          const mapped: Property[] = props.map((p: any) => {
+          const mapped: Property[] = (props as any[]).map((p: any) => {
             const firstGallery =
               (p.imagenes_propiedad || []).find((im: any) => im.categoria === 'principal') ||
               (p.imagenes_propiedad || [])[0];
@@ -175,6 +195,7 @@ export const useEspanyaLogic = () => {
               size: Number(p.metros_cuadrados),
               province: p.zonas?.ciudad ?? '',
               area: p.zonas?.area ?? '',
+              typeId: p.tipo_id ?? p.tipos?.id ?? null,
               typeSlug: p.tipos?.slug ?? undefined
             } as Property;
           });
@@ -193,15 +214,17 @@ export const useEspanyaLogic = () => {
 
   // ---------- PROPIEDADES (filtros + paginación) ----------
   const filteredProperties = useMemo(() => {
-    const typeSet = new Set((selectedTypes as OptionType[]).map(t => t.value.toLowerCase()));
+    const typeIdSet = new Set((selectedTypes as OptionType[]).map(t => String(t.value)));
     return allProperties
       .filter(p => (selectedProvince ? p.province === selectedProvince : true))
-      .filter(p => typeSet.size ? typeSet.has((p.typeSlug ?? p.title).toLowerCase()) : true)
-      .filter(p => searchTerm
-        ? (p.title + ' ' + (p.area ?? '')).toLowerCase().includes(searchTerm.toLowerCase())
-        : true
+      .filter(p => (selectedArea ? (p.area ?? '') === selectedArea : true))
+      .filter(p => (typeIdSet.size ? (p.typeId ? typeIdSet.has(String(p.typeId)) : false) : true))
+      .filter(p =>
+        searchTerm
+          ? (p.title + ' ' + (p.area ?? '')).toLowerCase().includes(searchTerm.toLowerCase())
+          : true
       );
-  }, [allProperties, selectedProvince, selectedTypes, searchTerm]);
+  }, [allProperties, selectedProvince, selectedArea, selectedTypes, searchTerm]);
 
   const propertyTotalPages = useMemo(
     () => Math.max(1, Math.ceil(filteredProperties.length / propertiesPerPage)),
@@ -214,7 +237,7 @@ export const useEspanyaLogic = () => {
     return filteredProperties.slice(start, end);
   }, [filteredProperties, propertyPage]);
 
-  useEffect(() => { setPropertyPage(1); }, [selectedProvince, selectedTypes, searchTerm]);
+  useEffect(() => { setPropertyPage(1); }, [selectedProvince, selectedArea, selectedTypes, searchTerm]);
 
   // ---------- ZONAS (paginación independiente) ----------
   const zoneTotalPages = useMemo(() => (!selectedProvince ? 2 : 1), [selectedProvince]);
@@ -227,7 +250,7 @@ export const useEspanyaLogic = () => {
 
   useEffect(() => { setZonePage(1); }, [selectedProvince]);
 
-  // ---------- TYPES (paginación INDEPENDIENTE y propia) ----------
+  // ---------- TYPES (tarjetas; paginación independiente) ----------
   const typeTotalPages = useMemo(() => (!selectedProvince ? 2 : 1), [selectedProvince]);
 
   const typeCardsForView = useMemo(() => {
@@ -238,18 +261,59 @@ export const useEspanyaLogic = () => {
 
   useEffect(() => { setTypePage(1); }, [selectedProvince]);
 
+  // ---------- Helper: URL /search compatible ----------
+  const getSearchHref = () => {
+    const qs = new URLSearchParams();
+    qs.set('page', '1');
+
+    // operación
+    if (operation) qs.set('op', operation);
+
+    // tipos (ids)
+    if (selectedTypes.length) {
+      qs.set('types', (selectedTypes as OptionType[]).map(t => t.value).join(','));
+    }
+
+    // zona (fijamos España)
+    qs.set('country', COUNTRY_ES);
+    if (selectedProvince) qs.set('province', selectedProvince);
+    if (selectedArea) qs.set('area', selectedArea);
+
+    // texto location (para input de Search)
+    const locText = [selectedArea, selectedProvince, COUNTRY_ES].filter(Boolean).join(', ');
+    if (locText) qs.set('loc', locText);
+
+    // bedrooms min
+    if (bedroomsMin) {
+      const bmin = bedroomsMin.replace('+', '');
+      qs.set('bmin', bmin);
+    }
+
+    // max price numérico
+    if (maxPrice) {
+      const pmax = parseInt(maxPrice.replace(/\D/g, ''), 10);
+      if (Number.isFinite(pmax)) qs.set('pmax', String(pmax));
+    }
+
+    return `/search?${qs.toString()}`;
+  };
+
   return {
-    // filtros
+    // ===== filtros (para el UI) =====
+    operation, setOperation,
     selectedProvince, setSelectedProvince,
+    selectedArea, setSelectedArea,
     selectedTypes, setSelectedTypes,
+    bedroomsMin, setBedroomsMin,
+    maxPrice, setMaxPrice,
     searchTerm, setSearchTerm,
 
-    // paginaciones
+    // ===== paginaciones =====
     zonePage, setZonePage, zoneTotalPages,
     typePage, setTypePage, typeTotalPages,
     propertyPage, setPropertyPage, propertyTotalPages,
 
-    // datos
+    // ===== datos y derivados =====
     propertiesPerPage,
     provincesByCountry,
     areasByProvince,
@@ -258,11 +322,12 @@ export const useEspanyaLogic = () => {
     typeCardsMalaga,
     typeCardsForView,
     zoneCards,
-
-    // derivados
     paginatedProperties,
 
-    // status
-    loading, error
+    // ===== status =====
+    loading, error,
+
+    // ===== navegación a /search =====
+    getSearchHref,
   };
 };

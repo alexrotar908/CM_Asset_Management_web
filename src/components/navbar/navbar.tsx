@@ -4,12 +4,16 @@ import './Navbar.css';
 import LoginModal from '../../auth/LoginModal';
 import RegisterModal from '../../auth/RegisterModal';
 import { useAuth } from '../../context/AuthContext';
+import { useTranslation } from 'react-i18next';
 
 const Navbar: React.FC = () => {
   const [authModal, setAuthModal] = useState<'login' | 'register' | null>(null);
   const [showUserMenu, setShowUserMenu] = useState(false);
   const { user, logout } = useAuth();
   const navigate = useNavigate();
+
+  const { t, i18n } = useTranslation('navbar');
+  const currentLang = i18n.language.startsWith('es') ? 'es' : 'en';
 
   useEffect(() => {
     const closeMenu = () => setShowUserMenu(false);
@@ -18,8 +22,12 @@ const Navbar: React.FC = () => {
   }, []);
 
   const handleMenuClick = (e: React.MouseEvent) => {
-    e.stopPropagation(); // evitar que se cierre al hacer clic en el ícono
+    e.stopPropagation();
     setShowUserMenu(!showUserMenu);
+  };
+
+  const changeLang = (lng: 'es' | 'en') => {
+    i18n.changeLanguage(lng);
   };
 
   return (
@@ -30,43 +38,34 @@ const Navbar: React.FC = () => {
         </div>
 
         <div className="nav-links">
-          <Link to="/">Home</Link>
-          <Link to="/espanya">España</Link>
-          <Link to="/dubai">Dubái</Link>
-          <Link to="/romania">Rumanía</Link>
+          <Link to="/">{t('home')}</Link>
+          <Link to="/espanya">{t('spain')}</Link>
+          <Link to="/dubai">{t('dubai')}</Link>
+          <Link to="/romania">{t('romania')}</Link>
 
-
-           {/* ===== Dropdown Agencia (Who + Servicios) ===== */}
+          {/* Dropdown Agencia */}
           <div className="nav-item dropdown" tabIndex={0}>
-            <span className="dropdown-toggle">Agencia</span>
+            <span className="dropdown-toggle">{t('agency')}</span>
             <div className="dropdown-menu">
-              <Link to="/who" className="dropdown-item">Who</Link>
-              <Link to="/servicios" className="dropdown-item">Servicios</Link>
+              <Link to="/who" className="dropdown-item">{t('who')}</Link>
+              <Link to="/servicios" className="dropdown-item">{t('services')}</Link>
             </div>
           </div>
 
-          {/* Elimina los enlaces sueltos a Who/Servicios si los tenías en línea */}
-          {/* <NavLink to="/who" className="nav-item">Who</NavLink>
-          <NavLink to="/servicios" className="nav-item">Servicios</NavLink> */}
-
-          <Link to="/contacto">Contacto</Link>
+          <Link to="/contacto">{t('contact')}</Link>
 
           {user ? (
             <div className="user-menu-container" onClick={handleMenuClick}>
-              <img
-                src="/user-profile.svg"
-                alt="Usuario"
-                className="user-icon"
-              />
+              <img src="/user-profile.svg" alt="Usuario" className="user-icon" />
               {showUserMenu && (
                 <div className="user-menu-dropdown">
                   <button onClick={() => navigate('/profile')} style={{ color: '#000' }}>
-                    Perfil
+                    {t('profile')}
                   </button>
                   <button onClick={() => navigate('/favoritos')} style={{ color: '#000' }}>
-                    Favoritos
+                    {t('favorites')}
                   </button>
-                  <button onClick={logout}>Logout</button>
+                  <button onClick={logout}>{t('logout')}</button>
                 </div>
               )}
             </div>
@@ -74,20 +73,28 @@ const Navbar: React.FC = () => {
             <button
               onClick={() => setAuthModal('login')}
               className="login-button"
-              style={{
-                color: '#2563eb',
-                background: 'transparent',
-                border: 'none',
-                cursor: 'pointer',
-              }}
+              style={{ color: '#2563eb', background: 'transparent', border: 'none', cursor: 'pointer' }}
             >
-              Login
+              {t('login')}
             </button>
           )}
 
           <span className="language-selector">
-            <button>Español</button> | <button>English</button>
+            <button
+              onClick={() => changeLang('es')}
+              style={{ fontWeight: currentLang === 'es' ? 700 : 400 }}
+            >
+              {t('spanish')}
+            </button>
+            {' | '}
+            <button
+              onClick={() => changeLang('en')}
+              style={{ fontWeight: currentLang === 'en' ? 700 : 400 }}
+            >
+              {t('english')}
+            </button>
           </span>
+
           <span className="phone">📞 +34 911 644 182</span>
         </div>
       </nav>

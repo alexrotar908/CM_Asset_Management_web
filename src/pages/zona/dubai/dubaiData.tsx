@@ -5,22 +5,28 @@ import { supabase } from '../../../lib/supabaseClient';
 
 /* ---------------------- Tipos de datos (UI) ---------------------- */
 export interface OptionType {
-  value: string; // slug
+  value: string; // ID del tipo (compat con /search)
   label: string; // visible
 }
 
 export interface Property {
-  id: string;      // UUID en BD
+  id: string;
   title: string;
-  price: string;   // formateado para UI (p.ej. "1.000.000 €")
-  image: string;   // portada (primera de imagesByProperty o imagen_principal)
+  price: string;   // formateado
+  image: string;   // portada
   bedrooms: number;
   bathrooms: number;
   size: number;
   city: string;    // "Dubai City"
+  area?: string;
+  typeId?: string | null;
+  typeSlug?: string | null;
 }
 
 /* ------------------------ Tipos de BD (mínimos) ------------------------ */
+type TipoJoin = { id: string; slug: string | null };
+type ZonaJoin = { area: string };
+
 type TipoRow = { id: string; nombre: string; slug: string | null };
 type ZonaRow = { id: string; pais: string | null; ciudad: string; area: string };
 type PropRow = {
@@ -32,36 +38,42 @@ type PropRow = {
   banos: number | null;
   metros_cuadrados: number | null;
   imagen_principal: string | null;
-  tipo?: string | null;
   tipo_id?: string | null;
   zona_id: string | null;
+  // 👇 Supabase puede devolver objeto o array según la relación
+  zonas?: ZonaJoin | ZonaJoin[] | null;
+  tipos?: TipoJoin | TipoJoin[] | null;
 };
 type ImgRow = { propiedad_id: string; url: string; categoria: string | null };
 
+/* Utils para joins 1:1 que a veces vienen como array */
+const firstOf = <T,>(v: T | T[] | null | undefined): T | undefined =>
+  Array.isArray(v) ? v[0] : v ?? undefined;
+
+/* Constantes */
+const COUNTRY_UAE = 'UAE';
+const DUBAI_CITY = 'Dubai City';
+
 /* ------------------------------ Hook ------------------------------ */
 export const useDubaiLogic = () => {
-  /* Estado de filtros */
-  const [selectedCity, setSelectedCity] = useState<string>(''); // opcional, solo existe Dubai City
+  /* ===== Filtros compatibles con Home/Search ===== */
+  const [operation, setOperation] = useState<'Buy' | 'Rent' | 'Rented' | ''>('');
+  const [selectedArea, setSelectedArea] = useState<string>('');
   const [selectedTypes, setSelectedTypes] = useState<MultiValue<OptionType>>([]);
+  const [bedroomsMin, setBedroomsMin] = useState<string>(''); // '1'...'5+'
+  const [maxPrice, setMaxPrice] = useState<string>('');        // '1.000.000€'
   const [searchTerm, setSearchTerm] = useState<string>('');
 
-  /* Estado de paginación (propiedades) */
+  /* ===== Paginación (propiedades) ===== */
   const [propertyPage, setPropertyPage] = useState<number>(1);
   const propertiesPerPage = 3;
 
-  /* Datos para selects/zonas/props */
-  const [typeOptions, setTypeOptions] = useState<OptionType[]>([
-    { value: 'apartamento-de-lujo', label: 'Apartamento de Lujo' },
-    { value: 'villa',               label: 'Villa' },
-    { value: 'atico',               label: 'Ático' },
-    { value: 'penthouse',           label: 'Penthouse' },
-  ]);
-
+  /* ===== Datos ===== */
+  const [typeOptions, setTypeOptions] = useState<OptionType[]>([]);
   const [areasByCity, setAreasByCity] = useState<Record<string, string[]>>({
-    'Dubai City': [],
+    [DUBAI_CITY]: [],
   });
 
-  // Solo una clave: "Dubai"
   const [zonesData, setZonesData] = useState<
     Record<'Dubai', { name: string; slug: string; image: string; link: string }[]>
   >({ Dubai: [] });
@@ -69,34 +81,34 @@ export const useDubaiLogic = () => {
   const [allProperties, setAllProperties] = useState<Property[]>([]);
   const [imagesByProperty, setImagesByProperty] = useState<Record<string, string[]>>({});
 
-  /* Selector de ciudad: solo Dubái */
-  const cities = ['Dubai City'] as const;
+  const cities = [DUBAI_CITY] as const;
 
-  /* ---------------------- Carga de TIPOS ---------------------- */
+  /* ---------------------- Carga de TIPOS (IDs) ---------------------- */
   useEffect(() => {
     (async () => {
       const { data, error } = await supabase
         .from('tipos')
-        .select('nombre, slug')
+        .select('id, nombre, slug')
         .order('nombre', { ascending: true });
       if (!error && data) {
-        const opts = (data as TipoRow[])
-          .filter(t => !!t.slug)
-          .map(t => ({ value: String(t.slug), label: t.nombre }));
+        const opts = (data as TipoRow[]).map(t => ({
+          value: String(t.id),
+          label: (t.nombre ?? '').trim(),
+        }));
         if (opts.length) setTypeOptions(opts);
       }
     })();
   }, []);
 
-  /* -------- Carga de ZONAS (solo Dubai City) + PROPIEDADES + IMÁGENES -------- */
+  /* -------- Carga de ZONAS (Dubai City) + PROPIEDADES + IMÁGENES -------- */
   useEffect(() => {
     (async () => {
-      // 1) Zonas de Dubai City
+      // 1) Zonas (áreas) de Dubai City
       const { data, error } = await supabase
         .from('zonas')
         .select('id, pais, ciudad, area')
-        .eq('ciudad', 'Dubai City')
-        .eq('pais', 'UAE')
+        .eq('ciudad', DUBAI_CITY)
+        .eq('pais', COUNTRY_UAE)
         .order('area', { ascending: true });
 
       if (error || !data) return;
@@ -117,12 +129,12 @@ export const useDubaiLogic = () => {
           .replace(/[^a-z0-9]+/g, '-')
           .replace(/^-+|-+$/g, '');
 
-      // Áreas de Dubai City
-      const nextAreas: Record<string, string[]> = { 'Dubai City': [] };
-      for (const z of rows) nextAreas['Dubai City'].push(z.area);
+      // Áreas para el select
+      const nextAreas: Record<string, string[]> = { [DUBAI_CITY]: [] };
+      for (const z of rows) nextAreas[DUBAI_CITY].push(z.area);
       setAreasByCity(nextAreas);
 
-      // Cards de zonas (clave "Dubai")
+      // Cards de zonas
       const dubaiCards = rows.map(z => ({
         name: z.area,
         slug: toSlug(z.area),
@@ -131,13 +143,25 @@ export const useDubaiLogic = () => {
       }));
       setZonesData({ Dubai: dubaiCards });
 
-      // 2) Propiedades de esas zonas
+      // 2) Propiedades de esas zonas (joins a zona + tipos)
       const zoneIds = rows.map(r => r.id);
       if (!zoneIds.length) return;
 
       const { data: props, error: perr } = await supabase
         .from('propiedades')
-        .select('id, titulo, precio, dormitorios, banos, metros_cuadrados, imagen_principal, zona_id')
+        .select(`
+          id,
+          titulo,
+          precio,
+          dormitorios,
+          banos,
+          metros_cuadrados,
+          imagen_principal,
+          zona_id,
+          tipo_id,
+          zonas:zona_id ( area ),
+          tipos:tipo_id ( id, slug )
+        `)
         .in('zona_id', zoneIds)
         .order('destacada', { ascending: false })
         .order('precio', { ascending: false });
@@ -145,13 +169,13 @@ export const useDubaiLogic = () => {
       if (perr || !props) return;
 
       // 3) Imágenes de esas propiedades
-      const propIds = (props as PropRow[]).map(p => p.id);
+      const propIds = (props as any[]).map((p: any) => p.id);
       const { data: imgs } = await supabase
         .from('imagenes_propiedad')
         .select('propiedad_id, url, categoria')
         .in('propiedad_id', propIds);
 
-      // Orden para carrusel
+      // Orden de categorías para portada
       const order = [
         'portadas', 'entradas',
         'salones', 'comedores', 'cocinas',
@@ -164,7 +188,7 @@ export const useDubaiLogic = () => {
         const k = (c ?? '').toLowerCase();
         const i = order.indexOf(k);
         return i === -1 ? 999 : i;
-      };
+        };
 
       const group: Record<string, string[]> = {};
       (imgs as ImgRow[] | null)?.forEach(({ propiedad_id, url, categoria }) => {
@@ -172,7 +196,6 @@ export const useDubaiLogic = () => {
         group[propiedad_id].push(JSON.stringify({ url, categoria: categoria ?? '' }));
       });
 
-      // sort con prioridad por categoria
       for (const k of Object.keys(group)) {
         group[k].sort((a, b) => {
           const A = JSON.parse(a) as { url: string; categoria: string };
@@ -180,7 +203,6 @@ export const useDubaiLogic = () => {
           const d = idx(A.categoria) - idx(B.categoria);
           return d !== 0 ? d : A.url.localeCompare(B.url);
         });
-        // Devuelve solo las urls
         group[k] = group[k].map(s => (JSON.parse(s) as { url: string }).url);
       }
 
@@ -189,10 +211,13 @@ export const useDubaiLogic = () => {
           ? n.toLocaleString('es-ES', { maximumFractionDigits: 0 }) + ' €'
           : '—';
 
-      // Compose propiedades usando la primera imagen como portada
-      const mapped: Property[] = (props as PropRow[]).map(p => {
+      // Map a nuestro modelo de UI (uniendo objeto/array de joins)
+      const mapped: Property[] = (props as unknown as PropRow[]).map((p) => {
+        const zona = firstOf(p.zonas);
+        const tipo = firstOf(p.tipos);
         const imgsProp = group[p.id] ?? [];
         const cover = imgsProp[0] ?? p.imagen_principal ?? '/images_dubai/dubai_fallback.jpg';
+
         return {
           id: p.id,
           title: p.titulo,
@@ -201,7 +226,10 @@ export const useDubaiLogic = () => {
           bedrooms: p.dormitorios ?? 0,
           bathrooms: p.banos ?? 0,
           size: p.metros_cuadrados ?? 0,
-          city: 'Dubai City',
+          city: DUBAI_CITY,
+          area: zona?.area ?? '',
+          typeId: p.tipo_id ?? tipo?.id ?? null,
+          typeSlug: tipo?.slug ?? null,
         };
       });
 
@@ -234,8 +262,16 @@ export const useDubaiLogic = () => {
 
   /* ---------------------- Propiedades: filtro + paginación ---------------------- */
   const filteredProperties = useMemo(() => {
-    return selectedCity ? allProperties.filter(p => p.city === selectedCity) : allProperties;
-  }, [allProperties, selectedCity]);
+    const typeIdSet = new Set((selectedTypes as OptionType[]).map(t => t.value));
+    return allProperties
+      .filter(p => (selectedArea ? (p.area ?? '') === selectedArea : true))
+      .filter(p => (typeIdSet.size ? (p.typeId ? typeIdSet.has(String(p.typeId)) : false) : true))
+      .filter(p =>
+        searchTerm
+          ? (p.title + ' ' + (p.area ?? '')).toLowerCase().includes(searchTerm.toLowerCase())
+          : true
+      );
+  }, [allProperties, selectedArea, selectedTypes, searchTerm]);
 
   const paginatedProperties = useMemo(() => {
     const start = (propertyPage - 1) * propertiesPerPage;
@@ -244,30 +280,66 @@ export const useDubaiLogic = () => {
 
   const totalPages = Math.max(1, Math.ceil(filteredProperties.length / propertiesPerPage));
 
+  /* ---------------------- URL /search compatible ---------------------- */
+  const getSearchHref = () => {
+    const qs = new URLSearchParams();
+    qs.set('page', '1');
+
+    if (operation) qs.set('op', operation);
+
+    if (selectedTypes.length) {
+      qs.set('types', (selectedTypes as OptionType[]).map(t => t.value).join(','));
+    }
+
+    qs.set('country', COUNTRY_UAE);
+    qs.set('province', DUBAI_CITY);
+    if (selectedArea) qs.set('area', selectedArea);
+
+    const locText = [selectedArea, DUBAI_CITY, COUNTRY_UAE].filter(Boolean).join(', ');
+    if (locText) qs.set('loc', locText);
+
+    if (bedroomsMin) {
+      const bmin = bedroomsMin.replace('+', '');
+      qs.set('bmin', bmin);
+    }
+
+    if (maxPrice) {
+      const pmax = parseInt(maxPrice.replace(/\D/g, ''), 10);
+      if (Number.isFinite(pmax)) qs.set('pmax', String(pmax));
+    }
+
+    return `/search?${qs.toString()}`;
+  };
+
   return {
-    // estado
-    selectedCity, setSelectedCity,
+    // filtros
+    operation, setOperation,
+    selectedArea, setSelectedArea,
     selectedTypes, setSelectedTypes,
+    bedroomsMin, setBedroomsMin,
+    maxPrice, setMaxPrice,
     searchTerm, setSearchTerm,
 
-    // paginación propiedades
+    // paginación
     propertyPage, setPropertyPage,
+    propertiesPerPage,
+    totalPages,
 
-    // datos (desde BD)
+    // datos
     cities: [...cities],
     typeOptions,
     areasByCity,
     zonesData,
 
-    // propiedades (desde BD)
+    // props e imágenes
     allProperties,
     paginatedProperties,
-    totalPages,
-
-    // imágenes para carrusel
     imagesByProperty,
 
-    // tarjetas estáticas (solo Dubai)
+    // cards
     typeCardsDubaiCity,
+
+    // navegación a /search
+    getSearchHref,
   };
 };

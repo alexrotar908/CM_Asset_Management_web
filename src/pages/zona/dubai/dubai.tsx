@@ -1,9 +1,12 @@
+// src/pages/zona/dubai/dubai.tsx
 import './dubai.css';
-import Select, { components } from 'react-select';
-import { Link } from 'react-router-dom';
-import { useState } from 'react';
-import type { OptionType } from './dubaiData';
+import Select, { components, type GroupBase } from 'react-select';
+import { Link, useNavigate } from 'react-router-dom';
+import { useMemo, useState } from 'react';
 import { useDubaiLogic } from './dubaiData';
+import type { OptionType } from './dubaiData';
+
+type GroupedOption = { label: string; options: OptionType[] };
 
 type CardProp = {
   prop: {
@@ -40,12 +43,7 @@ function PropertyCard({ prop, images }: CardProp) {
 
   return (
     <div className="property-item">
-      {/* Ruta unificada con España */}
-      <Link
-        to={`/propiedad/${prop.id}`}
-        state={{ images }}
-        className="carousel-card"
-      >
+      <Link to={`/propiedad/${encodeURIComponent(prop.id)}`} state={{ images }} className="carousel-card">
         <div className="carousel-wrap">
           <img src={imgs[idx]} alt={prop.title} />
           {imgs.length > 1 && (
@@ -80,62 +78,91 @@ function PropertyCard({ prop, images }: CardProp) {
 
 export default function Dubai() {
   const {
-    selectedCity, setSelectedCity,
+    // filtros alineados con /search
+    operation, setOperation,
+    selectedArea, setSelectedArea,
     selectedTypes, setSelectedTypes,
+    bedroomsMin, setBedroomsMin,
+    maxPrice, setMaxPrice,
     searchTerm, setSearchTerm,
+
+    // paginación
     propertyPage, setPropertyPage,
-    cities,
+    totalPages,
+
+    // datos
     typeOptions,
     areasByCity,
     zonesData,
+
+    // propiedades
     paginatedProperties,
-    typeCardsDubaiCity,
-    totalPages,
     imagesByProperty,
+
+    // tarjetas
+    typeCardsDubaiCity,
+
+    // navegación
+    getSearchHref,
   } = useDubaiLogic();
 
-  const selectAllTypes = () => setSelectedTypes(typeOptions);
-  const clearTypes = () => setSelectedTypes([]);
+  const navigate = useNavigate();
 
-  const onSubmit: React.FormEventHandler<HTMLFormElement> = (e) => {
-    e.preventDefault();
+  /* ===== TYPE: mismo UI que Home/Espanya (agrupado) ===== */
+  const typeGroups: GroupedOption[] = useMemo(
+    () => [{ label: 'UAE, Dubai City', options: typeOptions }],
+    [typeOptions]
+  );
+
+  const CustomOption = (props: any) => (
+    <components.Option {...props}>
+      <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center' }}>
+        <span>{props.label}</span>
+        {props.isSelected && <span aria-hidden="true">✓</span>}
+      </div>
+    </components.Option>
+  );
+
+  const CustomValueContainer = (props: any) => {
+    const count = props.getValue().length;
+    return (
+      <components.ValueContainer {...props}>
+        {count === 0 ? (
+          <span className="rs-placeholder">{props.selectProps.placeholder}</span>
+        ) : (
+          <span className="rs-count">{count} selected types</span>
+        )}
+      </components.ValueContainer>
+    );
   };
 
   const CustomMenuList = (props: any) => {
-    const filteredOptions = props.options.filter((option: OptionType) =>
-      option.label.toLowerCase().includes(searchTerm.toLowerCase())
-    );
+    const handleSelectAll = () => {
+      const map = new Map<string, OptionType>();
+      typeGroups.forEach((g) => g.options.forEach((o) => map.set(o.value, o)));
+      setSelectedTypes(Array.from(map.values()));
+    };
+    const handleClear = () => setSelectedTypes([]);
 
     return (
       <components.MenuList {...props}>
-        <div className="custom-menu-search">
-          <input
-            type="text"
-            placeholder="Buscar tipo..."
-            value={searchTerm}
-            onChange={(e) => setSearchTerm(e.target.value)}
-            className="custom-menu-input"
-          />
-          <div className="custom-menu-buttons">
-            <button type="button" onClick={selectAllTypes}>Seleccionar todo</button>
-            <button type="button" onClick={clearTypes}>Quitar selección</button>
-          </div>
+        <div className="custom-menu-buttons">
+          <button type="button" onClick={handleSelectAll}>Seleccionar todo</button>
+          <button type="button" onClick={handleClear}>Quitar selección</button>
         </div>
-        {filteredOptions.map((option: OptionType) => (
-          <components.Option
-            key={option.value}
-            {...props}
-            data={option}
-            isSelected={selectedTypes.some((t: OptionType) => t.value === option.value)}
-          >
-            {option.label}
-          </components.Option>
-        ))}
+        {props.children}
       </components.MenuList>
     );
   };
 
+  /* ===== Submit → /search con los filtros del hook ===== */
+  const onSubmit: React.FormEventHandler<HTMLFormElement> = (e) => {
+    e.preventDefault();
+    navigate(getSearchHref());
+  };
+
   const zonesToShow = zonesData.Dubai ?? [];
+  const areas = areasByCity['Dubai City'] ?? [];
 
   return (
     <div className="dubai-container">
@@ -146,65 +173,79 @@ export default function Dubai() {
         </div>
       </section>
 
+      {/* ===== Buscador (clonado del de Home/Espanya) ===== */}
       <section className="search-section">
         <form className="search-form" onSubmit={onSubmit}>
-          <select>
-            <option>Buy</option>
-            <option>Rent</option>
+          {/* Operación */}
+          <select value={operation} onChange={(e) => setOperation(e.target.value as any)}>
+            <option value="">All</option>
+            <option value="Buy">Buy</option>
+            <option value="Rent">Rent</option>
+            <option value="Rented">Rented</option>
           </select>
 
-          <div style={{ flex: 1 }}>
-            <Select
-              options={typeOptions}
+          {/* TYPE (agrupado) */}
+          <div style={{ flex: 1, minWidth: 260 }}>
+            <Select<OptionType, true, GroupBase<OptionType>>
+              options={typeGroups as unknown as GroupBase<OptionType>[]}
               isMulti
               placeholder="Tipo"
-              value={selectedTypes}
+              value={selectedTypes as any}
               onChange={setSelectedTypes as any}
               className="type-select"
-              components={{ MenuList: CustomMenuList }}
+              classNamePrefix="rs"
+              components={{
+                MenuList: CustomMenuList,
+                ValueContainer: CustomValueContainer,
+                Option: CustomOption,
+                MultiValue: () => null,
+              }}
               isSearchable={false}
               filterOption={null}
+              closeMenuOnSelect={false}
+              hideSelectedOptions={false}
+              noOptionsMessage={() => 'No hay tipos disponibles'}
             />
           </div>
 
-          <select value={selectedCity} onChange={(e) => setSelectedCity(e.target.value)}>
-            <option value=''>Ciudad</option>
-            {cities.map((city) => (
-              <option key={city} value={city}>{city}</option>
+          {/* Ciudad fija (Dubai City) como en Espanya el “country/province” */}
+          <select value="Dubai City" disabled>
+            <option>Dubai City</option>
+          </select>
+
+          {/* Área */}
+          <select value={selectedArea} onChange={(e) => setSelectedArea(e.target.value)} disabled={areas.length === 0}>
+            <option value="">Select Area</option>
+            {areas.map((a) => (
+              <option key={a} value={a}>{a}</option>
             ))}
           </select>
 
-          <select disabled={!selectedCity}>
-            <option value=''>Área</option>
-            {selectedCity && areasByCity['Dubai City']?.map((area) => (
-              <option key={area} value={area}>{area}</option>
-            ))}
+          {/* Bedrooms (mínimo) */}
+          <select value={bedroomsMin} onChange={(e) => setBedroomsMin(e.target.value)}>
+            <option value="">Bedrooms</option>
+            <option value="1">1</option><option value="2">2</option>
+            <option value="3">3</option><option value="4">4</option>
+            <option value="5+">5+</option>
           </select>
 
-          <select>
-            <option>Bedrooms</option>
-            <option>1</option>
-            <option>2</option>
-            <option>3</option>
-            <option>4</option>
-            <option>5+</option>
-          </select>
-
-          <select>
-            <option>Max Price</option>
-            <option>500K€</option>
-            <option>1M€</option>
-            <option>5M€</option>
-            <option>10M€</option>
+          {/* Max Price */}
+          <select value={maxPrice} onChange={(e) => setMaxPrice(e.target.value)}>
+            <option value="">Max Price</option>
+            <option>500.000€</option>
+            <option>1.000.000€</option>
+            <option>5.000.000€</option>
+            <option>10.000.000€</option>
           </select>
 
           <button type="submit">Search</button>
         </form>
       </section>
 
+      {/* ZONAS */}
       <section className="zones-section">
         <h2>Exclusive Properties and Unique Spaces</h2>
-        <p>The best properties in {selectedCity || 'Dubai'}</p>
+        <p>The best properties in Dubai</p>
 
         <div className="zones-grid">
           {zonesToShow.map((zone) => (
@@ -219,6 +260,7 @@ export default function Dubai() {
         </div>
       </section>
 
+      {/* TYPES */}
       <section className="property-types">
         <h2>Properties by Type Dubai</h2>
         <p>Find the typology that suits your needs</p>
@@ -248,8 +290,9 @@ export default function Dubai() {
         </div>
       </section>
 
+      {/* LISTADO PROPIEDADES */}
       <section className="property-selection">
-        <h2>Exclusive Properties in Selection {selectedCity || 'Dubai'}</h2>
+        <h2>Exclusive Properties in Selection Dubai</h2>
 
         <div className="selection-grid">
           {paginatedProperties.map((prop) => (

@@ -1,10 +1,11 @@
+// src/pages/zona/romania/romaniaData.tsx
 import { useEffect, useMemo, useState } from 'react';
 import type { MultiValue } from 'react-select';
 import { supabase } from '../../../lib/supabaseClient';
 
 /* ---------------------- Tipos de datos (UI) ---------------------- */
 export interface OptionType {
-  value: string; // slug
+  value: string; // slug (para /search types=)
   label: string; // visible
 }
 
@@ -38,30 +39,30 @@ type ImgRow = { propiedad_id: string; url: string; categoria: string | null };
 
 /* ------------------------------ Hook ------------------------------ */
 export const useRomaniaLogic = () => {
-  /* Estado de filtros */
-  const [selectedCity, setSelectedCity] = useState<string>('');
+  /* ===== Filtros (alineados con Home/Search) ===== */
+  const [operation, setOperation] = useState<'' | 'Buy' | 'Rent' | 'Rented'>('');
+  const [selectedCity, setSelectedCity] = useState<string>(''); // Province equivale a City
+  const [selectedArea, setSelectedArea] = useState<string>('');
   const [selectedTypes, setSelectedTypes] = useState<MultiValue<OptionType>>([]);
+  const [bedroomsMin, setBedroomsMin] = useState<string>(''); // '1'...'5+'
+  const [maxPrice, setMaxPrice] = useState<string>('');        // ej. '100.000€'
+
+  // Búsqueda libre (si quieres reutilizarla en menús o listados locales)
   const [searchTerm, setSearchTerm] = useState<string>('');
 
-  /* Estado de paginación (propiedades) */
+  /* ===== Paginación Propiedades ===== */
   const [propertyPage, setPropertyPage] = useState<number>(1);
   const propertiesPerPage = 3;
 
-  /* 🔹 Estado de paginación independiente (ZONAS y TIPOS) */
+  /* 🔹 Paginaciones independientes (ZONAS y TIPOS) */
   const [zonePage, setZonePage] = useState<number>(1);
   const zonesPerPage = 4;
 
   const [typePage, setTypePage] = useState<number>(1);
-  const typeCategoriesPerPage = 2; // n.º de bloques/categorías por página
+  const typeCategoriesPerPage = 2; // nº de bloques por página
 
-  /* Datos para selects/zonas/props */
-  const [typeOptions, setTypeOptions] = useState<OptionType[]>([
-    { value: 'apartamento', label: 'Apartamento' },
-    { value: 'casa', label: 'Casa' },
-    { value: 'penthouse', label: 'Penthouse' },
-    { value: 'atico', label: 'Ático' },
-  ]);
-
+  /* ===== Datos para selects / tarjetas / props ===== */
+  const [typeOptions, setTypeOptions] = useState<OptionType[]>([]);
   const [areasByCity, setAreasByCity] = useState<Record<string, string[]>>({
     Bucharest: [],
     'Cluj Napoca': [],
@@ -89,7 +90,7 @@ export const useRomaniaLogic = () => {
         const opts = (data as TipoRow[])
           .filter(t => !!t.slug)
           .map(t => ({ value: String(t.slug), label: t.nombre }));
-        if (opts.length) setTypeOptions(opts);
+        setTypeOptions(opts);
       }
     })();
   }, []);
@@ -97,6 +98,7 @@ export const useRomaniaLogic = () => {
   /* -------- Carga de ZONAS (Bucharest/Cluj) + PROPIEDADES + IMÁGENES -------- */
   useEffect(() => {
     (async () => {
+      // 1) Zonas
       const { data, error } = await supabase
         .from('zonas')
         .select('id, ciudad, area, pais')
@@ -128,6 +130,7 @@ export const useRomaniaLogic = () => {
           .replace(/[^a-z0-9]+/g, '-')
           .replace(/^-+|-+$/g, '');
 
+      // Áreas por ciudad
       const nextAreas: Record<string, string[]> = { Bucharest: [], 'Cluj Napoca': [] };
       for (const z of rows) {
         if (z.ciudad === 'Bucharest') nextAreas.Bucharest.push(z.area);
@@ -135,6 +138,7 @@ export const useRomaniaLogic = () => {
       }
       setAreasByCity(nextAreas);
 
+      // Tarjetas por ciudad
       const bucharestCards = rows
         .filter(z => z.ciudad === 'Bucharest')
         .map(z => ({
@@ -155,6 +159,7 @@ export const useRomaniaLogic = () => {
 
       setZonesData({ Bucharest: bucharestCards, 'Cluj Napoca': clujCards });
 
+      // 2) Propiedades de esas zonas
       const zoneIds = rows.map(r => r.id);
       if (!zoneIds.length) return;
 
@@ -167,12 +172,14 @@ export const useRomaniaLogic = () => {
 
       if (perr || !props) return;
 
+      // 3) Imágenes asociadas
       const propIds = (props as PropRow[]).map(p => p.id);
       const { data: imgs } = await supabase
         .from('imagenes_propiedad')
         .select('propiedad_id, url, categoria')
         .in('propiedad_id', propIds);
 
+      // Orden de prioridad para carrusel
       const order = [
         'portadas', 'entradas',
         'salones', 'comedores', 'cocinas',
@@ -203,6 +210,7 @@ export const useRomaniaLogic = () => {
         group[k] = group[k].map(s => (JSON.parse(s) as { url: string }).url);
       }
 
+      // Map para obtener la ciudad a partir de zona_id
       const zoneIdToCity: Record<string, string> = {};
       for (const z of rows) zoneIdToCity[z.id] = z.ciudad;
 
@@ -231,7 +239,7 @@ export const useRomaniaLogic = () => {
     })();
   }, []);
 
-  /* ---------------------- Cards "Types" (estáticas por ciudad) ---------------------- */
+  /* ---------------------- Tarjetas "Types" (estáticas por ciudad) ---------------------- */
   const typeCardsBucharest = [
     {
       category: 'Luxury Living',
@@ -288,7 +296,6 @@ export const useRomaniaLogic = () => {
   const zoneCardsSource = useMemo(() => {
     if (selectedCity === 'Bucharest') return zonesData.Bucharest;
     if (selectedCity === 'Cluj Napoca') return zonesData['Cluj Napoca'];
-    // sin filtro: primero Bucharest, luego Cluj
     return [...zonesData.Bucharest, ...zonesData['Cluj Napoca']];
   }, [zonesData, selectedCity]);
 
@@ -313,45 +320,89 @@ export const useRomaniaLogic = () => {
 
   const typeTotalPages = Math.max(1, Math.ceil(typeCardsSource.length / typeCategoriesPerPage));
 
-  /* Si cambia el filtro de ciudad, reiniciamos cada paginación a 1 */
+  /* Si cambia la ciudad, reseteamos las páginas */
   useEffect(() => {
     setZonePage(1);
     setTypePage(1);
     setPropertyPage(1);
   }, [selectedCity]);
 
+  /* ===== Helper: URL /search compatible ===== */
+  const getSearchHref = () => {
+    const qs = new URLSearchParams();
+    qs.set('page', '1');
+
+    // operación
+    if (operation) qs.set('op', operation);
+
+    // tipos (slugs)
+    if (selectedTypes.length) {
+      qs.set('types', (selectedTypes as OptionType[]).map(t => t.value).join(','));
+    }
+
+    // zona
+    qs.set('country', 'Romania');              // país fijo
+    if (selectedCity) qs.set('province', selectedCity);
+    if (selectedArea) qs.set('area', selectedArea);
+
+    // texto de location (para input de Search)
+    const locText = [selectedArea, selectedCity, 'Romania'].filter(Boolean).join(', ');
+    if (locText) qs.set('loc', locText);
+
+    // bedrooms min
+    if (bedroomsMin) {
+      const bmin = bedroomsMin.replace('+', '');
+      qs.set('bmin', bmin);
+    }
+
+    // max price numérico
+    if (maxPrice) {
+      const pmax = parseInt(maxPrice.replace(/\D/g, ''), 10);
+      if (Number.isFinite(pmax)) qs.set('pmax', String(pmax));
+    }
+
+    return `/search?${qs.toString()}`;
+  };
+
   return {
-    // estado
+    // ===== filtros =====
+    operation, setOperation,
     selectedCity, setSelectedCity,
+    selectedArea, setSelectedArea,
     selectedTypes, setSelectedTypes,
+    bedroomsMin, setBedroomsMin,
+    maxPrice, setMaxPrice,
     searchTerm, setSearchTerm,
 
-    // paginaciones independientes
+    // ===== paginaciones =====
     zonePage, setZonePage, zoneTotalPages,
     typePage, setTypePage, typeTotalPages,
     propertyPage, setPropertyPage,
 
-    // datos (desde BD)
+    // ===== datos =====
     cities: [...cities],
     typeOptions,
     areasByCity,
     zonesData,
 
-    // propiedades (desde BD)
+    // ===== propiedades =====
     allProperties,
     paginatedProperties,
     totalPages,
 
-    // imágenes para carrusel
+    // ===== imágenes =====
     imagesByProperty,
 
-    // tarjetas estáticas
+    // ===== tarjetas estáticas =====
     typeCardsBucharest,
     typeCardsCluj,
     typeCardsCombined,
 
-    // derivados para UI
+    // ===== derivados UI =====
     paginatedZones,
     typeCardsForView,
+
+    // ===== navegación a /search =====
+    getSearchHref,
   };
 };

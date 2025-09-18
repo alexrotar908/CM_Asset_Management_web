@@ -4,23 +4,30 @@ import { useNavigate } from 'react-router-dom';
 import Select, { components } from 'react-select';
 import type { MultiValue, GroupBase } from 'react-select';
 import { supabase } from '../../lib/supabaseClient';
+import { useTranslation } from 'react-i18next';
 
 type OptionType = { value: string; label: string };
 type GroupedOption = { label: string; options: OptionType[] };
 
 export default function Home() {
+  const { t, i18n } = useTranslation('home');
+  const currentLang: 'es' | 'en' = i18n.language?.startsWith('es') ? 'es' : 'en';
+
+  // Helpers para nombres de columnas por idioma
+  const fPais   = `pais_${currentLang}`;
+  const fCiudad = `ciudad_${currentLang}`;
+  const fArea   = `area_${currentLang}`;
+  const fTipo   = `nombre_${currentLang}`;
+
   // ===== Estado de selección =====
   const [operation, setOperation] = useState<'Buy' | 'Rent' | 'Rented'>('Rent');
-
   const [selectedCountry, setSelectedCountry] = useState<string>('');
   const [selectedProvince, setSelectedProvince] = useState<string>(''); // ciudad
   const [selectedArea, setSelectedArea] = useState<string>('');
-
   const [selectedTypes, setSelectedTypes] = useState<MultiValue<OptionType>>([]);
 
-  // Estado para Bedrooms (mínimo) y Max Price (ambos selects ya existían)
-  const [bedroomsMin, setBedroomsMin] = useState<string>(''); // '1'...'5+'
-  const [maxPrice, setMaxPrice] = useState<string>('');       // p.ej. '100.000€'
+  const [bedroomsMin, setBedroomsMin] = useState<string>(''); 
+  const [maxPrice, setMaxPrice] = useState<string>('');       
 
   const navigate = useNavigate();
 
@@ -30,6 +37,13 @@ export default function Home() {
   const [areas, setAreas] = useState<string[]>([]);
   const [typeGroups, setTypeGroups] = useState<GroupedOption[]>([]);
   const [loadingTypes, setLoadingTypes] = useState<boolean>(false);
+
+  // Si cambia el idioma, reseteamos selección de zona (evita mezclas es/en)
+  useEffect(() => {
+    setSelectedCountry('');
+    setSelectedProvince('');
+    setSelectedArea('');
+  }, [currentLang]);
 
   // ===== Helpers =====
   const dedupe = (arr: (string | null | undefined)[]) =>
@@ -41,14 +55,25 @@ export default function Home() {
       )
     ).sort((a, b) => a.localeCompare(b));
 
+  const pick = (obj: any, key: string, fallbackKeys: string[] = []) => {
+    if (obj?.[key]) return String(obj[key]).trim();
+    for (const k of fallbackKeys) if (obj?.[k]) return String(obj[k]).trim();
+    return '';
+  };
+
   // =================== TIPOS AGRUPADOS ===================
   const loadTypeGroups = useCallback(async () => {
     setLoadingTypes(true);
 
+    // Zonas con columnas bilingües
     const [{ data: zonasData, error: zonasErr }, { data: tiposData, error: tiposErr }] =
       await Promise.all([
-        supabase.from('zonas').select('pais, ciudad'),
-        supabase.from('tipos').select('id, nombre').order('nombre', { ascending: true }),
+        supabase.from('zonas').select(`${fPais}, ${fCiudad}`),
+        // Tipos: traemos es/en + original por si faltan (fallback)
+        supabase
+          .from('tipos')
+          .select(`id, ${fTipo}, nombre_es, nombre_en, nombre`)
+          .order(fTipo as any, { ascending: true }) // orden por idioma
       ]);
 
     if (zonasErr || tiposErr || !zonasData || !tiposData) {
@@ -57,12 +82,13 @@ export default function Home() {
       return;
     }
 
+    // Grupo visible "PAIS, CIUDAD" en idioma activo
     const cityGroups = Array.from(
       new Map(
         zonasData
           .map((z: any) => {
-            const pais = (z?.pais ?? '').trim();
-            const ciudad = (z?.ciudad ?? '').trim();
+            const pais   = pick(z, fPais);
+            const ciudad = pick(z, fCiudad);
             if (!pais || !ciudad) return null;
             return [`${pais}, ${ciudad}`, { pais, ciudad }];
           })
@@ -70,10 +96,15 @@ export default function Home() {
       ).keys()
     ).sort((a, b) => a.localeCompare(b));
 
-    const allTypeOptions: OptionType[] = (tiposData ?? []).map((t: any) => ({
-      value: String(t.id),
-      label: (t.nombre ?? '').trim(),
-    }));
+    // Opciones de tipos con etiqueta en idioma (fallback: ES → EN → original)
+    const allTypeOptions: OptionType[] = (tiposData ?? []).map((t: any) => {
+      const label =
+        pick(t, fTipo) ||
+        pick(t, 'nombre_es') ||
+        pick(t, 'nombre_en') ||
+        pick(t, 'nombre');
+      return { value: String(t.id), label };
+    });
 
     const groups: GroupedOption[] = cityGroups.map((label) => ({
       label,
@@ -82,20 +113,22 @@ export default function Home() {
 
     setTypeGroups(groups);
     setLoadingTypes(false);
-  }, []);
+  }, [fPais, fCiudad, fTipo, currentLang]);
 
   useEffect(() => {
     loadTypeGroups();
   }, [loadTypeGroups]);
 
   // =================== PAISES/PROVINCIAS/AREAS ===================
+  // Paises
   useEffect(() => {
     (async () => {
-      const { data, error } = await supabase.from('zonas').select('pais');
-      if (!error && data) setCountries(dedupe(data.map((z: any) => z.pais)));
+      const { data, error } = await supabase.from('zonas').select(fPais);
+      if (!error && data) setCountries(dedupe(data.map((z: any) => pick(z, fPais))));
     })();
-  }, []);
+  }, [fPais, currentLang]);
 
+  // Provincias por país
   useEffect(() => {
     if (!selectedCountry) {
       setProvinces([]);
@@ -107,15 +140,16 @@ export default function Home() {
     (async () => {
       const { data, error } = await supabase
         .from('zonas')
-        .select('ciudad')
-        .ilike('pais', selectedCountry.trim());
-      if (!error && data) setProvinces(dedupe(data.map((z: any) => z.ciudad)));
+        .select(fCiudad)
+        .ilike(fPais, selectedCountry.trim());
+      if (!error && data) setProvinces(dedupe(data.map((z: any) => pick(z, fCiudad))));
       setSelectedProvince('');
       setAreas([]);
       setSelectedArea('');
     })();
-  }, [selectedCountry]);
+  }, [selectedCountry, fPais, fCiudad, currentLang]);
 
+  // Áreas por país + provincia
   useEffect(() => {
     if (!selectedCountry || !selectedProvince) {
       setAreas([]);
@@ -125,17 +159,16 @@ export default function Home() {
     (async () => {
       const { data, error } = await supabase
         .from('zonas')
-        .select('area')
-        .ilike('pais', selectedCountry.trim())
-        .ilike('ciudad', selectedProvince.trim());
+        .select(fArea)
+        .ilike(fPais, selectedCountry.trim())
+        .ilike(fCiudad, selectedProvince.trim());
 
-      if (!error && data) setAreas(dedupe(data.map((z: any) => z.area)));
+      if (!error && data) setAreas(dedupe(data.map((z: any) => pick(z, fArea))));
       setSelectedArea('');
     })();
-  }, [selectedCountry, selectedProvince]);
+  }, [selectedCountry, selectedProvince, fPais, fCiudad, fArea, currentLang]);
 
   // =================== Custom components para el multiselect de Tipos ===================
-
   const CustomOption = (props: any) => (
     <components.Option {...props}>
       <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center' }}>
@@ -152,7 +185,9 @@ export default function Home() {
         {count === 0 ? (
           <span className="rs-placeholder">{props.selectProps.placeholder}</span>
         ) : (
-          <span className="rs-count">{count} selected types</span>
+          <span className="rs-count">
+            {count} {t('search.types.countSuffix')}
+          </span>
         )}
       </components.ValueContainer>
     );
@@ -169,51 +204,41 @@ export default function Home() {
     return (
       <components.MenuList {...props}>
         <div className="custom-menu-buttons">
-          <button type="button" onClick={handleSelectAll}>Seleccionar todo</button>
-          <button type="button" onClick={handleClear}>Quitar selección</button>
+          <button type="button" onClick={handleSelectAll}>
+            {t('search.types.selectAll')}
+          </button>
+          <button type="button" onClick={handleClear}>
+            {t('search.types.clear')}
+          </button>
         </div>
         {props.children}
       </components.MenuList>
     );
   };
 
-  const bedroomOptions = useMemo(() => ['1', '2', '3', '4', '5+'], []);
-  const priceOptions = useMemo(
-    () => ['5.000€', '10.000€', '50.000€', '100.000€', '500.000€', '1.000.000€'],
-    []
-  );
+  const bedroomOptions = useMemo(() => t('search.bedroomOptions', { returnObjects: true }) as string[], [t]);
+  const priceOptions = useMemo(() => t('search.priceOptions', { returnObjects: true }) as string[], [t]);
 
-  // ====== Submit → /search con querystring compatible con Search/RightFilters ======
+  // ====== Submit → /search con querystring ======
   const onSubmit = (e: React.FormEvent) => {
     e.preventDefault();
 
     const qs = new URLSearchParams();
     qs.set('page', '1');
 
-    // Operación (para que aparezca seleccionada en RightFilters)
     if (operation) qs.set('op', operation);
-
-    // Tipos (ids, separados por coma)
-    if (selectedTypes.length) {
-      qs.set('types', selectedTypes.map(t => t.value).join(','));
-    }
-
-    // Zona
+    if (selectedTypes.length) qs.set('types', selectedTypes.map(t => t.value).join(','));
     if (selectedCountry) qs.set('country', selectedCountry);
     if (selectedProvince) qs.set('province', selectedProvince);
     if (selectedArea) qs.set('area', selectedArea);
 
-    // Texto de location (solo para mostrar en el input de Search)
     const locText = [selectedArea, selectedProvince, selectedCountry].filter(Boolean).join(', ');
     if (locText) qs.set('loc', locText);
 
-    // Bedrooms min
     if (bedroomsMin) {
       const bmin = bedroomsMin.replace('+', '');
       qs.set('bmin', bmin);
     }
-
-    // Max price → número (sin puntos/€)
     if (maxPrice) {
       const pmax = parseInt(maxPrice.replace(/\D/g, ''), 10);
       if (Number.isFinite(pmax)) qs.set('pmax', String(pmax));
@@ -222,15 +247,16 @@ export default function Home() {
     navigate(`/search?${qs.toString()}`);
   };
 
+  // ============ WHY ITEMS (fix TS) ============
+  type WhyItem = { title: string; text: string };
+  const whyItems = t('sections.why.items', { returnObjects: true }) as WhyItem[];
+
   return (
     <div className="home-container">
       <section className="hero">
         <div className="hero-content">
-          <h1>Welcome to CM Asset Management</h1>
-          <p>
-            We have the ability to interpret our clients' needs, ensuring that their operations are
-            always a success.
-          </p>
+          <h1>{t('hero.title')}</h1>
+          <p>{t('hero.subtitle')}</p>
         </div>
       </section>
 
@@ -239,9 +265,9 @@ export default function Home() {
         <form className="search-form" onSubmit={onSubmit}>
           {/* Operación */}
           <select value={operation} onChange={(e) => setOperation(e.target.value as any)}>
-            <option value="Buy">Buy</option>
-            <option value="Rent">Rent</option>
-            <option value="Rented">Rented</option>
+            <option value="Buy">{t('search.operation.buy')}</option>
+            <option value="Rent">{t('search.operation.rent')}</option>
+            <option value="Rented">{t('search.operation.rented')}</option>
           </select>
 
           {/* === TIPO (AGRUPADO) === */}
@@ -249,7 +275,7 @@ export default function Home() {
             <Select<OptionType, true, GroupBase<OptionType>>
               options={typeGroups as unknown as GroupBase<OptionType>[]}
               isMulti
-              placeholder={loadingTypes ? 'Loading types...' : 'Tipo'}
+              placeholder={loadingTypes ? t('search.types.loading') : t('search.types.placeholder')}
               value={selectedTypes}
               onChange={setSelectedTypes}
               className="type-select"
@@ -264,17 +290,17 @@ export default function Home() {
               closeMenuOnSelect={false}
               hideSelectedOptions={false}
               isDisabled={loadingTypes || (typeGroups?.length ?? 0) === 0}
-              noOptionsMessage={() => (loadingTypes ? 'Loading...' : 'No hay tipos disponibles')}
+              noOptionsMessage={() =>
+                loadingTypes ? t('search.types.loading') : t('search.types.noOptions')
+              }
             />
           </div>
 
           {/* País */}
           <select value={selectedCountry} onChange={(e) => setSelectedCountry(e.target.value)}>
-            <option value="">Select Country</option>
+            <option value="">{t('search.country')}</option>
             {countries.map((c) => (
-              <option key={c} value={c}>
-                {c}
-              </option>
+              <option key={c} value={c}>{c}</option>
             ))}
           </select>
 
@@ -284,11 +310,9 @@ export default function Home() {
             onChange={(e) => setSelectedProvince(e.target.value)}
             disabled={!selectedCountry}
           >
-            <option value="">Select Province</option>
+            <option value="">{t('search.province')}</option>
             {provinces.map((p) => (
-              <option key={p} value={p}>
-                {p}
-              </option>
+              <option key={p} value={p}>{p}</option>
             ))}
           </select>
 
@@ -298,89 +322,74 @@ export default function Home() {
             onChange={(e) => setSelectedArea(e.target.value)}
             disabled={!selectedCountry || !selectedProvince}
           >
-            <option value="">Select Area</option>
+            <option value="">{t('search.area')}</option>
             {areas.map((a) => (
-              <option key={a} value={a}>
-                {a}
-              </option>
+              <option key={a} value={a}>{a}</option>
             ))}
           </select>
 
           {/* Dormitorios */}
           <select value={bedroomsMin} onChange={(e) => setBedroomsMin(e.target.value)}>
-            <option value="">Bedrooms</option>
+            <option value="">{t('search.bedrooms')}</option>
             {bedroomOptions.map((b) => (
-              <option key={b} value={b}>
-                {b}
-              </option>
+              <option key={b} value={b}>{b}</option>
             ))}
           </select>
 
           {/* Precio Máximo */}
           <select value={maxPrice} onChange={(e) => setMaxPrice(e.target.value)}>
-            <option value="">Max Price</option>
+            <option value="">{t('search.maxPrice')}</option>
             {priceOptions.map((p) => (
-              <option key={p} value={p}>
-                {p}
-              </option>
+              <option key={p} value={p}>{p}</option>
             ))}
           </select>
 
-          <button type="submit">Search</button>
+          <button type="submit">{t('search.searchBtn')}</button>
         </form>
       </section>
 
       {/* ===== resto de Home ===== */}
       <section className="properties-section">
-        <h2>Exclusive Properties and Unique Spaces</h2>
-        <p>The best properties in Spain, Dubái and Rumanía</p>
+        <h2>{t('sections.exclusive.title')}</h2>
+        <p>{t('sections.exclusive.subtitle')}</p>
         <div className="properties-grid">
           <a href="/espanya" className="property-card">
             <img src="/images_zonas/espanya.png" alt="España" />
             <div className="property-info">
-              <h3>Spain</h3>
-              <button>View Properties</button>
+              <h3>{t('sections.exclusive.cards.spain.title')}</h3>
+              <button>{t('sections.exclusive.cards.spain.cta')}</button>
             </div>
           </a>
           <a href="/dubai" className="property-card">
             <img src="/images_zonas/dubai.png" alt="Dubái" />
             <div className="property-info">
-              <h3>Dubái</h3>
-              <button>View Properties</button>
+              <h3>{t('sections.exclusive.cards.dubai.title')}</h3>
+              <button>{t('sections.exclusive.cards.dubai.cta')}</button>
             </div>
           </a>
           <a href="/romania" className="property-card">
             <img src="/images_zonas/rumania.png" alt="Rumanía" />
             <div className="property-info">
-              <h3>Rumanía</h3>
-              <button>View Properties</button>
+              <h3>{t('sections.exclusive.cards.romania.title')}</h3>
+              <button>{t('sections.exclusive.cards.romania.cta')}</button>
             </div>
           </a>
         </div>
       </section>
 
       <section className="welcome-section">
-        <h2>Discover Your New Home with CM Asset Management</h2>
-        <p>
-          We invite you to explore our website and discover the available properties, as well as our
-          specialized services...
-        </p>
+        <h2>{t('sections.welcome.title')}</h2>
+        <p>{t('sections.welcome.text')}</p>
         <img src="/logo.png" alt="Luxury Building" />
       </section>
 
       <section className="why-choose-us">
-        <div className="why-item">
-          <h3>01. Best Decision</h3>
-          <p>We help you make the best decision...</p>
-        </div>
-        <div className="why-item">
-          <h3>02. Quality Service</h3>
-          <p>Quality in service is our fundamental pillar...</p>
-        </div>
-        <div className="why-item">
-          <h3>03. Satisfaction</h3>
-          <p>Objective: the satisfaction of our customers...</p>
-        </div>
+        {(Array.isArray(whyItems) ? whyItems : []).map((item, idx) => (
+          <div key={idx} className="why-item">
+            <h3>{item.title}</h3>
+            <p>{item.text}</p>
+          </div>
+        ))}
       </section>
     </div>
   );
