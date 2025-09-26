@@ -1,0 +1,44 @@
+{
+  "hero": {
+    "title": "Bienvenido a Madrid",
+    "subtitle": "Descubre las mejores propiedades en la capital."
+  },
+  "search": {
+    "operation": { "buy": "Comprar", "rent": "Alquilar", "rented": "Alquilado" },
+    "types": {
+      "placeholder": "Tipo",
+      "selectAll": "Seleccionar todo",
+      "clear": "Quitar selección",
+      "searchPlaceholder": "Buscar tipo..."
+    },
+    "province": "Madrid",
+    "area": "Área",
+    "bedrooms": "Dormitorios",
+    "maxPrice": "Precio máximo",
+    "searchBtn": "Buscar"
+  },
+  "zones": {
+    "title": "Propiedades Exclusivas y Espacios Únicos",
+    "subtitle": "Las mejores propiedades en Madrid",
+    "cta": "Ver propiedades"
+  },
+  "typesSection": {
+    "title": "Propiedades por Tipo Madrid",
+    "subtitle": "Encuentra la tipología que se ajusta a tus necesidades",
+    "more": "MÁS DETALLES"
+  },
+  "selection": {
+    "title": "Quality Keys Madrid",
+    "beds": "dorm.",
+    "baths": "baños"
+  },
+  "welcome": {
+    "title": "Descubre tu nuevo hogar con CM Asset Management",
+    "text": "Te invitamos a explorar nuestra web y descubrir las propiedades disponibles, así como nuestros servicios especializados…"
+  },
+  "why": {
+    "one": { "title": "01. La mejor decisión", "text": "Te ayudamos a tomar la mejor decisión…" },
+    "two": { "title": "02. Servicio de calidad", "text": "La calidad en el servicio es nuestro pilar fundamental…" },
+    "three": { "title": "03. Satisfacción", "text": "Objetivo: la satisfacción de nuestros clientes…" }
+  }
+}

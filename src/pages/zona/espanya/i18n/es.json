@@ -1,0 +1,86 @@
+{
+  "hero": {
+    "title": "Bienvenido a España",
+    "subtitle": "Descubre las mejores propiedades en Madrid y la Costa del Sol. Conectamos contigo hogares exclusivos y oportunidades de inversión a tu medida."
+  },
+  "search": {
+    "all": "Todas",
+    "operation": { "buy": "Comprar", "rent": "Alquilar", "rented": "Alquilado" },
+    "types": {
+      "placeholder": "Tipo",
+      "loading": "Cargando tipos...",
+      "noOptions": "No hay tipos disponibles",
+      "countSuffix": "tipos seleccionados",
+      "selectAll": "Seleccionar todo",
+      "clear": "Quitar selección"
+    },
+    "province": "Selecciona provincia",
+    "area": "Selecciona área",
+    "bedrooms": "Dormitorios",
+    "maxPrice": "Precio máximo",
+    "searchBtn": "Buscar"
+  },
+  "regions": {
+    "title": "Destinos destacados en España",
+    "subtitle": "Explora nuestra selección de propiedades en Madrid y la Costa del Sol — dos de los mercados más vibrantes.",
+    "madrid": { "title": "Madrid", "cta": "Ver propiedades" },
+    "costa": { "title": "Costa del Sol", "cta": "Ver propiedades" }
+  },
+  "zones": {
+    "title": "Propiedades Exclusivas y Espacios Únicos",
+    "subtitleIn": "Las mejores propiedades en {{place}}",
+    "cta": "Ver propiedades"
+  },
+  "typesSection": {
+    "titleIn": "Propiedades por Tipo {{place}}",
+    "subtitle": "Encuentra la tipología que se ajusta a tus necesidades",
+    "more": "MÁS DETALLES",
+    "groups": {
+      "madrid": [
+        {
+          "category": "Residencial",
+          "description": "Compra villa, piso, ático o loft. Encuentra tu hogar entre nuestras propiedades."
+        },
+        {
+          "category": "Comercial",
+          "description": "Tenemos el local, oficina, nave, hotel o terreno adecuado para tu negocio."
+        }
+      ],
+      "malaga": [
+        {
+          "category": "Residencial",
+          "description": "Villas, casas, apartamentos, áticos. Encuentra tu hogar en la Costa del Sol."
+        },
+        {
+          "category": "Obra nueva",
+          "description": "Tu nuevo hogar en la Costa del Sol: vive el sueño mediterráneo."
+        }
+      ]
+    }
+  },
+  "selection": {
+    "titleIn": "Quality Keys {{place}}",
+    "titleDefault": "Quality Keys Selection",
+    "beds": "dorm.",
+    "baths": "baños"
+  },
+  "welcome": {
+    "title": "Encuentra tu hogar en España",
+    "text": "Desde los barrios con encanto de <strong>Madrid</strong> hasta las costas bañadas por el sol de la <strong>Costa del Sol</strong>, explora viviendas seleccionadas para tu estilo de vida."
+  },
+
+  "why": {
+    "one": {
+      "title": "01. La mejor decisión",
+      "text": "Te ayudamos a tomar la mejor decisión…"
+    },
+    "two": {
+      "title": "02. Servicio de calidad",
+      "text": "La calidad en el servicio es nuestro pilar fundamental…"
+    },
+    "three": {
+      "title": "03. Satisfacción",
+      "text": "Objetivo: la satisfacción de nuestros clientes…"
+    }
+  }
+}

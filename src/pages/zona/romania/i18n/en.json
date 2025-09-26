@@ -1,0 +1,47 @@
+{
+  "hero": {
+    "title": "Welcome to Romania",
+    "subtitle": "Explore the charm of Bucharest and Cluj-Napoca with exclusive properties."
+  },
+  "search": {
+    "all": "All",
+    "operation": { "buy": "Buy", "rent": "Rent", "rented": "Rented" },
+    "types": {
+      "placeholder": "Type",
+      "loading": "Loading types...",
+      "noOptions": "No types available",
+      "countSuffix": "selected types",
+      "selectAll": "Select all",
+      "clear": "Clear selection"
+    },
+    "city": "City",
+    "area": "Area",
+    "bedrooms": "Bedrooms",
+    "maxPrice": "Max Price",
+    "searchBtn": "Search"
+  },
+  "zones": {
+    "title": "Exclusive Properties and Unique Spaces",
+    "subtitleIn": "The best properties in {{place}}",
+    "cta": "View Properties"
+  },
+  "typesSection": {
+    "titleIn": "Properties by Type {{place}}",
+    "subtitle": "Find the typology that suits your needs",
+    "more": "MORE DETAILS"
+  },
+  "selection": {
+    "titleIn": "Exclusive Properties in {{place}}",
+    "beds": "beds",
+    "baths": "baths"
+  },
+  "welcome": {
+    "title": "Discover Your New Home in Romania",
+    "text": "We invite you to explore our curated selection of properties across the country."
+  },
+  "why": {
+    "best": { "title": "01. Best Decision", "text": "We help you make the best decisions in the Romanian market." },
+    "quality": { "title": "02. Quality Service", "text": "Professionalism and dedication at every step." },
+    "satisfaction": { "title": "03. Satisfaction", "text": "We ensure complete customer satisfaction." }
+  }
+}

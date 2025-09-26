@@ -7,7 +7,6 @@ import Contacto from '../pages/contacto/contacto';
 
 // Importa cada zona
 import Dubai from '../pages/zona/dubai/dubai';
-import DubaiCity from '../pages/zona/dubai/dubaiCity/dubaiCity';
 import Romania from '../pages/zona/romania/romania';
 import Bucharest from '../pages/zona/romania/bucharest/bucharest';
 import ClujNapoca from '../pages/zona/romania/clujNapoca/clujNapoca';
@@ -39,7 +38,6 @@ export default function AppRoutes() {
         <Route path="/espanya/madrid" element={<Madrid />} />
         <Route path="/espanya/malaga" element={<Malaga />} />
         <Route path="/dubai" element={<Dubai />} />
-        <Route path="/dubaiCity" element={<DubaiCity />} />
         <Route path="/romania" element={<Romania />} />
         <Route path="/clujNapoca" element={<ClujNapoca />} />
         <Route path="/bucharest" element={<Bucharest />} />

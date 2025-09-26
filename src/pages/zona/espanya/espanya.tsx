@@ -6,10 +6,33 @@ import { useEffect, useState } from 'react';
 import { supabase } from '../../../lib/supabaseClient';
 import { useEspanyaLogic } from './espanyaData';
 import type { OptionType } from './espanyaData';
+import { useTranslation } from 'react-i18next';
+
+// IMPORTA LOS JSON LOCALES DEL NAMESPACE
+import esNs from './i18n/es.json';
+import enNs from './i18n/en.json';
 
 type GroupedOption = { label: string; options: OptionType[] };
 
 export default function Espanya() {
+  // ---- i18n: asegura que el namespace esté registrado ----
+  const { t, i18n } = useTranslation('espanya');
+  useEffect(() => {
+    if (!i18n.hasResourceBundle('es', 'espanya')) {
+      i18n.addResourceBundle('es', 'espanya', esNs, true, true);
+    }
+    if (!i18n.hasResourceBundle('en', 'espanya')) {
+      i18n.addResourceBundle('en', 'espanya', enNs, true, true);
+    }
+  }, [i18n]);
+  const lang: 'es' | 'en' = i18n.language?.startsWith('es') ? 'es' : 'en';
+
+  // columnas dinámicas por idioma
+  const fPais = `pais_${lang}`;
+  const fCiudad = `ciudad_${lang}`;
+  const fTipo = `nombre_${lang}`;
+  const COUNTRY = lang === 'es' ? 'España' : 'Spain';
+
   const {
     // filtros (alineados con espanyaData)
     operation, setOperation,
@@ -50,18 +73,17 @@ export default function Espanya() {
       setLoadingTypes(true);
       try {
         const [{ data: zonas }, { data: tipos }] = await Promise.all([
-          supabase.from('zonas').select('pais, ciudad').eq('pais', 'España'),
-          supabase.from('tipos').select('id, nombre').order('nombre', { ascending: true }),
+          supabase.from('zonas').select(`${fPais}, ${fCiudad}`).eq(fPais, COUNTRY),
+          supabase.from('tipos').select(`id, ${fTipo}, nombre_es, nombre_en, nombre`).order(fTipo as any, { ascending: true }),
         ]);
         if (!alive) return;
 
-        // Grupos únicos por ciudad dentro de España
         const cityLabels = Array.from(
           new Map(
             (zonas || [])
               .map((z: any) => {
-                const pais = (z?.pais ?? '').trim();
-                const ciudad = (z?.ciudad ?? '').trim();
+                const pais = String(z?.[fPais] ?? '').trim();
+                const ciudad = String(z?.[fCiudad] ?? '').trim();
                 if (!pais || !ciudad) return null;
                 return [`${pais}, ${ciudad}`, true];
               })
@@ -69,10 +91,12 @@ export default function Espanya() {
           ).keys()
         ).sort((a, b) => a.localeCompare(b));
 
-        // IMPORTANTE: value = id (compatibilidad con espanyaData y /search)
+        const labelOf = (t: any) =>
+          String(t?.[fTipo] ?? t?.nombre_es ?? t?.nombre_en ?? t?.nombre ?? '').trim();
+
         const allTypeOptions: OptionType[] = (tipos || []).map((t: any) => ({
           value: String(t.id),
-          label: (t.nombre ?? '').trim(),
+          label: labelOf(t),
         }));
 
         const groups: GroupedOption[] = cityLabels.map((label) => ({
@@ -86,7 +110,7 @@ export default function Espanya() {
       }
     })();
     return () => { alive = false; };
-  }, []);
+  }, [fPais, fCiudad, fTipo, COUNTRY, lang]);
 
   // ======= Custom UI del selector (idéntico a Home) =======
   const CustomOption = (props: any) => (
@@ -105,7 +129,7 @@ export default function Espanya() {
         {count === 0 ? (
           <span className="rs-placeholder">{props.selectProps.placeholder}</span>
         ) : (
-          <span className="rs-count">{count} selected types</span>
+          <span className="rs-count">{count} {t('search.types.countSuffix')}</span>
         )}
       </components.ValueContainer>
     );
@@ -122,8 +146,8 @@ export default function Espanya() {
     return (
       <components.MenuList {...props}>
         <div className="custom-menu-buttons">
-          <button type="button" onClick={handleSelectAll}>Seleccionar todo</button>
-          <button type="button" onClick={handleClear}>Quitar selección</button>
+          <button type="button" onClick={handleSelectAll}>{t('search.types.selectAll')}</button>
+          <button type="button" onClick={handleClear}>{t('search.types.clear')}</button>
         </div>
         {props.children}
       </components.MenuList>
@@ -134,20 +158,17 @@ export default function Espanya() {
   const formatPrice = (n: number | string) => {
     const num = typeof n === 'string' ? Number(n) : n;
     if (!Number.isFinite(num)) return String(n ?? '');
-    return new Intl.NumberFormat('es-ES', { style: 'currency', currency: 'EUR', maximumFractionDigits: 0 }).format(num);
+    return new Intl.NumberFormat(lang === 'es' ? 'es-ES' : 'en-GB', { style: 'currency', currency: 'EUR', maximumFractionDigits: 0 }).format(num);
   };
 
-  // Provincias (la clave viene como "España" desde espanyaData)
-  const provincesES =
-    provincesByCountry['España'] ||
-    provincesByCountry['Spain'] ||
-    [];
+  // Provincias (la clave viene como país según idioma desde espanyaData)
+  const provincesES = provincesByCountry[COUNTRY] || [];
 
   // loading/error
   if (loading) {
     return (
       <div className="espanya-container">
-        <section className="heroes"><div className="heroes-content"><h1>Cargando España…</h1></div></section>
+        <section className="heroes"><div className="heroes-content"><h1>{t('hero.title')}</h1></div></section>
       </div>
     );
   }
@@ -161,36 +182,35 @@ export default function Espanya() {
 
   const onSubmit = (e: React.FormEvent) => {
     e.preventDefault();
-    // Redirige a /search con todos los filtros armados por espanyaData
     window.location.assign(getSearchHref());
   };
+
+  const place = selectedProvince || COUNTRY;
 
   return (
     <div className="espanya-container">
       <section className="heroes">
         <div className="heroes-content">
-          <h1>Welcome to Spain</h1>
-          <p>Discover the finest properties in Madrid and Málaga. We connect you with exclusive homes and investment opportunities tailored to your lifestyle and goals.</p>
+          <h1>{t('hero.title')}</h1>
+          <p>{t('hero.subtitle')}</p>
         </div>
       </section>
 
-      {/* ===== Buscador (idéntico a Home en UX) ===== */}
+      {/* ===== Buscador ===== */}
       <section className="search-section">
         <form className="search-form" onSubmit={onSubmit}>
-          {/* Operación */}
           <select value={operation} onChange={(e) => setOperation(e.target.value as any)}>
-            <option value="">All</option>
-            <option value="Buy">Buy</option>
-            <option value="Rent">Rent</option>
-            <option value="Rented">Rented</option>
+            <option value="">{t('search.all')}</option>
+            <option value="Buy">{t('search.operation.buy')}</option>
+            <option value="Rent">{t('search.operation.rent')}</option>
+            <option value="Rented">{t('search.operation.rented')}</option>
           </select>
 
-          {/* TYPE (agrupado por ciudades de España) */}
           <div style={{ flex: 1, minWidth: 260 }}>
             <Select<OptionType, true, GroupBase<OptionType>>
               options={typeGroupsES as unknown as GroupBase<OptionType>[]}
               isMulti
-              placeholder={loadingTypes ? 'Loading types...' : 'Tipo'}
+              placeholder={loadingTypes ? t('search.types.loading') : t('search.types.placeholder')}
               value={selectedTypes as any}
               onChange={setSelectedTypes as any}
               className="type-select"
@@ -199,20 +219,19 @@ export default function Espanya() {
                 MenuList: CustomMenuList,
                 ValueContainer: CustomValueContainer,
                 Option: CustomOption,
-                MultiValue: () => null, // oculta chips
+                MultiValue: () => null,
               }}
               isSearchable={false}
               filterOption={null}
               closeMenuOnSelect={false}
               hideSelectedOptions={false}
               isDisabled={loadingTypes || (typeGroupsES?.length ?? 0) === 0}
-              noOptionsMessage={() => (loadingTypes ? 'Loading...' : 'No hay tipos disponibles')}
+              noOptionsMessage={() => (loadingTypes ? t('search.types.loading') : t('search.types.noOptions'))}
             />
           </div>
 
-          {/* Provincia / Área (de Supabase) */}
           <select value={selectedProvince} onChange={(e) => setSelectedProvince(e.target.value)}>
-            <option value=''>Select Province</option>
+            <option value=''>{t('search.province')}</option>
             {provincesES.map((province) => (
               <option key={province} value={province}>{province}</option>
             ))}
@@ -223,22 +242,21 @@ export default function Espanya() {
             onChange={(e) => setSelectedArea(e.target.value)}
             disabled={!selectedProvince}
           >
-            <option value=''>Select Area</option>
+            <option value=''>{t('search.area')}</option>
             {selectedProvince && (areasByProvince[selectedProvince] || []).map((area) => (
               <option key={area} value={area}>{area}</option>
             ))}
           </select>
 
-          {/* Dormitorios min / Max Price (irán en la URL del Search) */}
           <select value={bedroomsMin} onChange={(e) => setBedroomsMin(e.target.value)}>
-            <option value="">Bedrooms</option>
+            <option value="">{t('search.bedrooms')}</option>
             <option value="1">1</option><option value="2">2</option>
             <option value="3">3</option><option value="4">4</option>
             <option value="5+">5+</option>
           </select>
 
           <select value={maxPrice} onChange={(e) => setMaxPrice(e.target.value)}>
-            <option value="">Max Price</option>
+            <option value="">{t('search.maxPrice')}</option>
             <option>5.000€</option>
             <option>10.000€</option>
             <option>50.000€</option>
@@ -247,38 +265,38 @@ export default function Espanya() {
             <option>1.000.000€</option>
           </select>
 
-          <button type="submit">Search</button>
+          <button type="submit">{t('search.searchBtn')}</button>
         </form>
       </section>
 
       {/* REGIONES */}
       <section className="regions-section">
-        <h2>Discover Spain’s Top Destinations</h2>
-        <p>Explore our curated selection of properties in Madrid and the Costa del Sol — two of Spain’s most vibrant real estate markets.</p>
+        <h2>{t('regions.title')}</h2>
+        <p>{t('regions.subtitle')}</p>
 
         <div className="regions-grid">
           <Link to="/espanya/madrid" className="region-card">
             <img src="/images_home/cibeles2.jpg" alt="Madrid" />
             <div className="region-overlay">
-              <h3>Madrid</h3>
-              <button>View Properties</button>
+              <h3>{t('regions.madrid.title')}</h3>
+              <button>{t('regions.madrid.cta')}</button>
             </div>
           </Link>
 
           <Link to="/espanya/malaga" className="region-card">
             <img src="/images_home/costa_del_sol.jpg" alt="Costa del Sol" />
             <div className="region-overlay">
-              <h3>Costa del Sol</h3>
-              <button>View Properties</button>
+              <h3>{t('regions.costa.title')}</h3>
+              <button>{t('regions.costa.cta')}</button>
             </div>
           </Link>
         </div>
       </section>
 
-      {/* ZONAS (paginación independiente) */}
+      {/* ZONAS */}
       <section className="zones-section">
-        <h2>Exclusive Properties and Unique Spaces</h2>
-        <p>The best properties in {selectedProvince || 'Spain'}</p>
+        <h2>{t('zones.title')}</h2>
+        <p>{t('zones.subtitleIn', { place })}</p>
 
         <div className="zones-grid">
           {zoneCards.map((zone) => (
@@ -286,7 +304,7 @@ export default function Espanya() {
               <img src={zone.image} alt={zone.name} />
               <div className="zone-info">
                 <h3>{zone.name}</h3>
-                <button>View Properties</button>
+                <button>{t('zones.cta')}</button>
               </div>
             </Link>
           ))}
@@ -307,10 +325,10 @@ export default function Espanya() {
         )}
       </section>
 
-      {/* TYPES (paginación independiente) */}
+      {/* TYPES */}
       <section className="property-types">
-        <h2>Properties by Type {selectedProvince || 'Spain'}</h2>
-        <p>Find the typology that suits your needs</p>
+        <h2>{t('typesSection.titleIn', { place })}</h2>
+        <p>{t('typesSection.subtitle')}</p>
 
         <div className="types-container">
           {typeCardsForView.map((group, index) => {
@@ -331,7 +349,7 @@ export default function Espanya() {
                     >
                       <img src={type.image} alt={type.name} />
                       <div className="type-name">{type.name}</div>
-                      <span className="more-details">MORE DETAILS</span>
+                      <span className="more-details">{t('typesSection.more')}</span>
                     </Link>
                   ))}
                 </div>
@@ -357,7 +375,7 @@ export default function Espanya() {
 
       {/* PROPIEDADES */}
       <section className="property-selection">
-        <h2>Quality Keys {selectedProvince ? selectedProvince : 'Selection'}</h2>
+        <h2>{selectedProvince ? t('selection.titleIn', { place: selectedProvince }) : t('selection.titleDefault')}</h2>
         <div className="selection-grid">
           {paginatedProperties.map(prop => (
             <div key={prop.id} className="property-item">
@@ -366,8 +384,8 @@ export default function Espanya() {
                 <h3>{prop.title}</h3>
                 <p>{formatPrice(prop.price)}</p>
                 <div className="property-details">
-                  <span>{prop.bedrooms} beds</span>
-                  <span>{prop.bathrooms} baths</span>
+                  <span>{prop.bedrooms} {t('selection.beds')}</span>
+                  <span>{prop.bathrooms} {t('selection.baths')}</span>
                   <span>{prop.size} m²</span>
                 </div>
               </Link>
@@ -389,12 +407,8 @@ export default function Espanya() {
       </section>
 
       <section className="welcome-section espanya-welcome">
-        <h2>Find Your Home in Spain</h2>
-        <p>
-          From timeless neighborhoods in <strong>Madrid</strong> to the sun-kissed shores of the
-          <strong> Costa del Sol</strong>, explore hand-picked homes tailored to your lifestyle.
-        </p>
-
+        <h2>{t('welcome.title')}</h2>
+        <p dangerouslySetInnerHTML={{ __html: t('welcome.text') }} />
         <div className="welcome-collage-card">
           <div className="welcome-collage">
             <img loading="lazy" src="/images_espanya/centro_madrid.jpg" alt="Gran Vía, Madrid" />
@@ -407,18 +421,19 @@ export default function Espanya() {
         </div>
       </section>
 
+      {/* WHY-CHOOSE-US traducido */}
       <section className="why-choose-us">
         <div className="why-item">
-          <h3>01. Best Decision</h3>
-          <p>We help you make the best decision...</p>
+          <h3>{t('why.one.title')}</h3>
+          <p>{t('why.one.text')}</p>
         </div>
         <div className="why-item">
-          <h3>02. Quality Service</h3>
-          <p>Quality in service is our fundamental pillar...</p>
+          <h3>{t('why.two.title')}</h3>
+          <p>{t('why.two.text')}</p>
         </div>
         <div className="why-item">
-          <h3>03. Satisfaction</h3>
-          <p>Objective: the satisfaction of our customers...</p>
+          <h3>{t('why.three.title')}</h3>
+          <p>{t('why.three.text')}</p>
         </div>
       </section>
     </div>

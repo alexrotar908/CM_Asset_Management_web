@@ -2,6 +2,7 @@
 import { useEffect, useMemo, useState } from 'react';
 import type { MultiValue } from 'react-select';
 import { supabase } from '../../../../lib/supabaseClient';
+import { useTranslation } from 'react-i18next';
 
 export interface OptionType { value: string; label: string; }
 export interface Property {
@@ -11,8 +12,8 @@ export interface Property {
 }
 type AreasMap = Record<string, string[]>;
 
-const FORCED_PROVINCE = 'Málaga'; // Ajusta si en tu BD está como 'Malaga'
-const PROV_MATCH = (p?: string) => (p === 'Málaga' || p === 'Malaga');
+const PROV_MATCH_ES = (p?: string) => p === 'Málaga';
+const PROV_MATCH_EN = (p?: string) => p === 'Malaga';
 
 const zonesDataMalaga = [
   { name: 'Centro Histórico', slug: 'centro_historico', image: '/images_espanya/malaga_centro.jpg', link: '/zone/malaga/centro' },
@@ -44,6 +45,20 @@ const typeCardsMalaga = [
 ];
 
 export const useMalagaLogic = () => {
+  const { i18n } = useTranslation();
+  const lang: 'es' | 'en' = i18n.language?.startsWith('es') ? 'es' : 'en';
+
+  // columnas en BD según idioma
+  const fPais = `pais_${lang}`;
+  const fCiudad = `ciudad_${lang}`;
+  const fArea = `area_${lang}`;
+  const fTipo = `nombre_${lang}`;
+  const fTitulo = `titulo_${lang}`;
+
+  const FORCED_PROVINCE = lang === 'es' ? 'Málaga' : 'Malaga';
+  const PROV_MATCH = lang === 'es' ? PROV_MATCH_ES : PROV_MATCH_EN;
+  const COUNTRY = lang === 'es' ? 'España' : 'Spain';
+
   const [selectedProvince, setSelectedProvince] = useState<string>(FORCED_PROVINCE);
   const [selectedTypes, setSelectedTypes] = useState<MultiValue<OptionType>>([]);
   const [searchTerm, setSearchTerm] = useState<string>('');
@@ -66,32 +81,45 @@ export const useMalagaLogic = () => {
         setLoading(true);
         setError(null);
 
-        // Áreas Málaga (aceptando ambas variantes)
+        // Áreas Málaga (por idioma)
         const { data: zonas, error: zonasErr } = await supabase
           .from('zonas')
-          .select('pais, ciudad, area')
-          .eq('pais', 'España');
+          .select(`${fPais}, ${fCiudad}, ${fArea}`)
+          .eq(fPais, COUNTRY);
         if (zonasErr) throw zonasErr;
 
         if (isMounted && zonas) {
-          const areas = Array.from(new Set(zonas.filter(z => PROV_MATCH(z.ciudad)).map(z => z.area))).sort();
+          const areas = Array.from(
+            new Set(
+              (zonas as any[])
+                .filter(z => PROV_MATCH(String(z?.[fCiudad] ?? '')))
+                .map(z => String(z?.[fArea] ?? '').trim())
+                .filter(Boolean)
+            )
+          ).sort();
           setAreasByProvince({ [FORCED_PROVINCE]: areas });
         }
 
+        // Tipos (etiqueta en idioma)
         const { data: tipos, error: tiposErr } = await supabase
           .from('tipos')
-          .select('nombre, slug');
+          .select(`id, ${fTipo}, nombre_es, nombre_en, nombre, slug`);
         if (tiposErr) throw tiposErr;
 
         if (isMounted && tipos) {
-          setTypeOptions(tipos.map(t => ({ value: t.nombre, label: t.nombre })) as OptionType[]);
+          const labelOf = (t: any) =>
+            String(t?.[fTipo] ?? t?.nombre_es ?? t?.nombre_en ?? t?.nombre ?? '').trim();
+          setTypeOptions(
+            (tipos as any[]).map(t => ({ value: labelOf(t), label: labelOf(t) })) as OptionType[]
+          );
         }
 
+        // Propiedades (filtraremos Málaga por ciudad)
         const { data: props, error: propsErr } = await supabase
           .from('propiedades')
           .select(`
             id,
-            titulo,
+            ${fTitulo},
             precio,
             dormitorios,
             banos,
@@ -99,7 +127,7 @@ export const useMalagaLogic = () => {
             imagen_principal,
             zona_id,
             tipo_id,
-            zonas:zona_id ( ciudad, area ),
+            zonas:zona_id ( ${fCiudad}, ${fArea} ),
             tipos:tipo_id ( slug ),
             imagenes_propiedad!imagenes_propiedad_propiedad_id_fkey ( url, categoria )
           `);
@@ -107,21 +135,21 @@ export const useMalagaLogic = () => {
 
         if (isMounted && props) {
           const mapped: Property[] = (props as any[])
-            .filter(p => PROV_MATCH(p?.zonas?.ciudad))
+            .filter(p => PROV_MATCH(String(p?.zonas?.[fCiudad] ?? '')))
             .map((p: any) => {
               const firstGallery =
                 (p.imagenes_propiedad || []).find((im: any) => im.categoria === 'principal') ||
                 (p.imagenes_propiedad || [])[0];
               return {
                 id: p.id,
-                title: p.titulo,
+                title: p[fTitulo] ?? '',
                 price: Number(p.precio),
                 image: p.imagen_principal || firstGallery?.url || '',
                 bedrooms: p.dormitorios,
                 bathrooms: p.banos,
                 size: Number(p.metros_cuadrados),
-                province: p.zonas?.ciudad ?? '',
-                area: p.zonas?.area ?? '',
+                province: p.zonas?.[fCiudad] ?? '',
+                area: p.zonas?.[fArea] ?? '',
                 typeSlug: p.tipos?.slug ?? undefined,
               } as Property;
             });
@@ -136,7 +164,8 @@ export const useMalagaLogic = () => {
     })();
 
     return () => { isMounted = false; };
-  }, []);
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [lang, fPais, fCiudad, fArea, fTitulo, fTipo]);
 
   const filteredProperties = useMemo(() => {
     const typeSet = new Set((selectedTypes as OptionType[]).map(t => t.value.toLowerCase()));

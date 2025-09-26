@@ -2,6 +2,7 @@
 import { useEffect, useMemo, useState } from 'react';
 import type { MultiValue } from 'react-select';
 import { supabase } from '../../../lib/supabaseClient';
+import { useTranslation } from 'react-i18next';
 
 export interface OptionType {
   value: string; // usamos ID de tipo (uuid o string) para ser compatible con /search
@@ -28,6 +29,20 @@ type AreasMap = Record<string, string[]>;
 const COUNTRY_ES = 'España';
 
 export const useEspanyaLogic = () => {
+  // ===== idioma actual =====
+  const { i18n } = useTranslation();
+  const lang: 'es' | 'en' = i18n.language?.startsWith('es') ? 'es' : 'en';
+
+  // columnas por idioma
+  const fPais   = `pais_${lang}`;
+  const fCiudad = `ciudad_${lang}`;
+  const fArea   = `area_${lang}`;
+  const fTipo   = `nombre_${lang}`;
+  const fTitulo = `titulo_${lang}`;
+
+  // nombre del país según idioma (para filtros/URL)
+  const COUNTRY = lang === 'es' ? 'España' : 'Spain';
+
   // ===== FILTROS DEL BUSCADOR (alineado con Home/Search) =====
   const [operation, setOperation] = useState<'Buy' | 'Rent' | 'Rented' | ''>(''); // '' = All
   const [selectedProvince, setSelectedProvince] = useState<string>('');
@@ -126,46 +141,55 @@ export const useEspanyaLogic = () => {
         setLoading(true);
         setError(null);
 
-        // Provincias/Áreas solo de España
+        // Provincias/Áreas solo de España (columas bilingües)
         const { data: zonas, error: zonasErr } = await supabase
           .from('zonas')
-          .select('pais, ciudad, area')
-          .eq('pais', COUNTRY_ES);
+          .select(`${fPais}, ${fCiudad}, ${fArea}`)
+          .eq(fPais, COUNTRY);
         if (zonasErr) throw zonasErr;
 
         if (isMounted && zonas) {
-          const provinces = Array.from(new Set(zonas.map(z => (z.ciudad ?? '').trim()).filter(Boolean))).sort();
+          const provinces = Array.from(
+            new Set(
+              (zonas as any[]).map(z => String(z?.[fCiudad] ?? '').trim()).filter(Boolean)
+            )
+          ).sort();
           const areasMap: AreasMap = {};
           provinces.forEach(p => {
             areasMap[p] = Array.from(
-              new Set(zonas.filter(z => (z.ciudad ?? '').trim() === p).map(z => (z.area ?? '').trim()).filter(Boolean))
+              new Set(
+                (zonas as any[])
+                  .filter(z => String(z?.[fCiudad] ?? '').trim() === p)
+                  .map(z => String(z?.[fArea] ?? '').trim())
+                  .filter(Boolean)
+              )
             ).sort();
           });
-          setProvincesByCountry({ [COUNTRY_ES]: provinces });
+          setProvincesByCountry({ [COUNTRY]: provinces });
           setAreasByProvince(areasMap);
         }
 
-        // Tipos → usamos ID + nombre (para /search types=ids)
+        // Tipos → id + nombre según idioma
         const { data: tipos, error: tiposErr } = await supabase
           .from('tipos')
-          .select('id, nombre, slug');
+          .select(`id, ${fTipo}, nombre_es, nombre_en, nombre, slug`);
         if (tiposErr) throw tiposErr;
 
         if (isMounted && tipos) {
           setTypeOptions(
             (tipos || []).map((t: any) => ({
               value: String(t.id),
-              label: (t.nombre ?? '').trim(),
+              label: String(t?.[fTipo] ?? t?.nombre_es ?? t?.nombre_en ?? t?.nombre ?? '').trim(),
             }))
           );
         }
 
-        // Propiedades (para listado local en esta página)
+        // Propiedades (para listado local en esta página) con títulos por idioma
         const { data: props, error: propsErr } = await supabase
           .from('propiedades')
           .select(`
             id,
-            titulo,
+            ${fTitulo},
             precio,
             dormitorios,
             banos,
@@ -173,7 +197,7 @@ export const useEspanyaLogic = () => {
             imagen_principal,
             zona_id,
             tipo_id,
-            zonas:zona_id ( ciudad, area ),
+            zonas:zona_id ( ${fCiudad}, ${fArea} ),
             tipos:tipo_id ( id, slug ),
             imagenes_propiedad!imagenes_propiedad_propiedad_id_fkey ( url, categoria )
           `);
@@ -187,14 +211,14 @@ export const useEspanyaLogic = () => {
 
             return {
               id: p.id,
-              title: p.titulo,
+              title: String(p?.[fTitulo] ?? '').trim(),
               price: Number(p.precio),
               image: p.imagen_principal || firstGallery?.url || '',
               bedrooms: p.dormitorios,
               bathrooms: p.banos,
               size: Number(p.metros_cuadrados),
-              province: p.zonas?.ciudad ?? '',
-              area: p.zonas?.area ?? '',
+              province: String(p.zonas?.[fCiudad] ?? ''),
+              area: String(p.zonas?.[fArea] ?? ''),
               typeId: p.tipo_id ?? p.tipos?.id ?? null,
               typeSlug: p.tipos?.slug ?? undefined
             } as Property;
@@ -210,7 +234,8 @@ export const useEspanyaLogic = () => {
     })();
 
     return () => { isMounted = false; };
-  }, []);
+  // vuelve a cargar si cambia el idioma/columnas
+  }, [fPais, fCiudad, fArea, fTipo, fTitulo, COUNTRY]);
 
   // ---------- PROPIEDADES (filtros + paginación) ----------
   const filteredProperties = useMemo(() => {
@@ -274,13 +299,13 @@ export const useEspanyaLogic = () => {
       qs.set('types', (selectedTypes as OptionType[]).map(t => t.value).join(','));
     }
 
-    // zona (fijamos España)
-    qs.set('country', COUNTRY_ES);
+    // zona (España/Spain según idioma)
+    qs.set('country', COUNTRY);
     if (selectedProvince) qs.set('province', selectedProvince);
     if (selectedArea) qs.set('area', selectedArea);
 
     // texto location (para input de Search)
-    const locText = [selectedArea, selectedProvince, COUNTRY_ES].filter(Boolean).join(', ');
+    const locText = [selectedArea, selectedProvince, COUNTRY].filter(Boolean).join(', ');
     if (locText) qs.set('loc', locText);
 
     // bedrooms min

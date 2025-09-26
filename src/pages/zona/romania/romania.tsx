@@ -5,6 +5,11 @@ import { useEffect, useState } from 'react';
 import { supabase } from '../../../lib/supabaseClient';
 import type { OptionType } from './romaniaData';
 import { useRomaniaLogic } from './romaniaData';
+import { useTranslation } from 'react-i18next';
+
+// Namespace local (igual que en España/Dubái)
+import esNs from './i18n/es.json';
+import enNs from './i18n/en.json';
 
 type CityKey = 'Bucharest' | 'Cluj Napoca';
 type ZoneCard = { name: string; slug: string; image: string; link: string };
@@ -13,6 +18,19 @@ type TypeGroup = { category: string; description: string; types: TypeCard[] };
 type GroupedOption = { label: string; options: OptionType[] };
 
 export default function Romania() {
+  // Registrar el namespace local
+  const { i18n, t } = useTranslation('romania');
+  if (!i18n.hasResourceBundle('es', 'romania')) i18n.addResourceBundle('es', 'romania', esNs, true, true);
+  if (!i18n.hasResourceBundle('en', 'romania')) i18n.addResourceBundle('en', 'romania', enNs, true, true);
+
+  // Idioma actual (evita union con false)
+  const currentLang = (() => {
+    const stored = typeof window !== 'undefined' ? localStorage.getItem('i18nextLng') : null;
+    const l = (stored ?? '').toLowerCase();
+    return l.startsWith('en') ? 'en' : 'es';
+  })();
+  if (i18n.language !== currentLang) i18n.changeLanguage(currentLang);
+
   const {
     // filtros (alineados con Home/Search)
     operation, setOperation,
@@ -65,7 +83,7 @@ export default function Romania() {
         ]);
         if (!alive) return;
 
-        // Etiquetas únicas por ciudad (mostramos "Romania, Bucharest" / "Romania, Cluj Napoca")
+        // Etiquetas únicas por ciudad
         const cityLabels = Array.from(
           new Map(
             (zonas || [])
@@ -79,7 +97,7 @@ export default function Romania() {
           ).keys()
         ).sort((a, b) => a.localeCompare(b));
 
-        // Importante: value = slug (coincide con romaniaData)
+        // value = slug (coincide con romaniaData)
         const allTypeOptions: OptionType[] = (tipos || [])
           .filter((t: any) => !!t?.slug)
           .map((t: any) => ({
@@ -97,9 +115,7 @@ export default function Romania() {
         if (alive) setLoadingTypes(false);
       }
     })();
-    return () => {
-      alive = false;
-    };
+    return () => { alive = false; };
   }, []);
 
   /* ====== UI del selector (idéntico al de España) ====== */
@@ -119,7 +135,9 @@ export default function Romania() {
         {count === 0 ? (
           <span className="rs-placeholder">{props.selectProps.placeholder}</span>
         ) : (
-          <span className="rs-count">{count} selected types</span>
+          <span className="rs-count">
+            {count} {t('search.types.countSuffix')}
+          </span>
         )}
       </components.ValueContainer>
     );
@@ -136,8 +154,8 @@ export default function Romania() {
     return (
       <components.MenuList {...props}>
         <div className="custom-menu-buttons">
-          <button type="button" onClick={handleSelectAll}>Seleccionar todo</button>
-          <button type="button" onClick={handleClear}>Quitar selección</button>
+          <button type="button" onClick={handleSelectAll}>{t('search.types.selectAll')}</button>
+          <button type="button" onClick={handleClear}>{t('search.types.clear')}</button>
         </div>
         {props.children}
       </components.MenuList>
@@ -158,12 +176,14 @@ export default function Romania() {
       ? (selectedCity === 'Bucharest' ? 'bucharest_type' : 'cluj_type')
       : (typePage === 1 ? 'bucharest_type' : 'cluj_type');
 
+  const placeLabel = isCityKey(selectedCity) ? selectedCity : 'Romania';
+
   return (
     <div className="romania-container">
       <section className="herorom">
         <div className="herorom-content">
-          <h1>Welcome to Romania</h1>
-          <p>Explore the charm of Bucharest and Cluj-Napoca with exclusive properties.</p>
+          <h1>{t('hero.title')}</h1>
+          <p>{t('hero.subtitle')}</p>
         </div>
       </section>
 
@@ -171,18 +191,18 @@ export default function Romania() {
         <form className="search-form" onSubmit={onSubmit}>
           {/* Operación */}
           <select value={operation} onChange={(e) => setOperation(e.target.value as any)}>
-            <option value="">All</option>
-            <option value="Buy">Buy</option>
-            <option value="Rent">Rent</option>
-            <option value="Rented">Rented</option>
+            <option value="">{t('search.all')}</option>
+            <option value="Buy">{t('search.operation.buy')}</option>
+            <option value="Rent">{t('search.operation.rent')}</option>
+            <option value="Rented">{t('search.operation.rented')}</option>
           </select>
 
-          {/* Tipo (agrupado por ciudad, como en España) */}
+          {/* Tipo (agrupado por ciudad) */}
           <div style={{ flex: 1, minWidth: 260 }}>
             <Select<OptionType, true, GroupBase<OptionType>>
               options={typeGroupsRO as unknown as GroupBase<OptionType>[]}
               isMulti
-              placeholder={loadingTypes ? 'Loading types...' : 'Tipo'}
+              placeholder={loadingTypes ? t('search.types.loading') : t('search.types.placeholder')}
               value={selectedTypes as any}
               onChange={setSelectedTypes as any}
               className="type-select"
@@ -198,13 +218,13 @@ export default function Romania() {
               closeMenuOnSelect={false}
               hideSelectedOptions={false}
               isDisabled={loadingTypes || (typeGroupsRO?.length ?? 0) === 0}
-              noOptionsMessage={() => (loadingTypes ? 'Loading...' : 'No hay tipos disponibles')}
+              noOptionsMessage={() => (loadingTypes ? t('search.types.loading') : t('search.types.noOptions'))}
             />
           </div>
 
           {/* Ciudad / Área */}
           <select value={selectedCity} onChange={(e) => setSelectedCity(e.target.value)}>
-            <option value=''>Ciudad</option>
+            <option value="">{t('search.city')}</option>
             {cities.map((city) => (
               <option key={city} value={city}>{city}</option>
             ))}
@@ -215,7 +235,7 @@ export default function Romania() {
             onChange={(e) => setSelectedArea(e.target.value)}
             disabled={!selectedCity}
           >
-            <option value=''>Área</option>
+            <option value="">{t('search.area')}</option>
             {isCityKey(selectedCity) && areasByCity[selectedCity]?.map((area) => (
               <option key={area} value={area}>{area}</option>
             ))}
@@ -223,24 +243,24 @@ export default function Romania() {
 
           {/* Bedrooms / Max Price */}
           <select value={bedroomsMin} onChange={(e) => setBedroomsMin(e.target.value)}>
-            <option value="">Bedrooms</option>
+            <option value="">{t('search.bedrooms')}</option>
             <option>1</option><option>2</option><option>3</option><option>4</option><option>5+</option>
           </select>
 
           <select value={maxPrice} onChange={(e) => setMaxPrice(e.target.value)}>
-            <option value="">Max Price</option>
+            <option value="">{t('search.maxPrice')}</option>
             <option>50.000€</option><option>100.000€</option>
             <option>500.000€</option><option>1.000.000€</option>
           </select>
 
-          <button type="submit">Search</button>
+          <button type="submit">{t('search.searchBtn')}</button>
         </form>
       </section>
 
       {/* ================= ZONAS ================= */}
       <section className="zones-section">
-        <h2>Exclusive Properties and Unique Spaces</h2>
-        <p>The best properties in {isCityKey(selectedCity) ? selectedCity : 'Romania'}</p>
+        <h2>{t('zones.title')}</h2>
+        <p>{t('zones.subtitleIn', { place: placeLabel })}</p>
 
         <div className="zones-grid">
           {paginatedZones.map((zone: ZoneCard) => (
@@ -248,7 +268,7 @@ export default function Romania() {
               <img src={zone.image} alt={zone.name} />
               <div className="zone-info">
                 <h3>{zone.name}</h3>
-                <button>View Properties</button>
+                <button>{t('zones.cta')}</button>
               </div>
             </Link>
           ))}
@@ -271,8 +291,8 @@ export default function Romania() {
 
       {/* ================= TYPES ================= */}
       <section className="property-types">
-        <h2>Properties by Type {isCityKey(selectedCity) ? selectedCity : 'Romania'}</h2>
-        <p>Find the typology that suits your needs</p>
+        <h2>{t('typesSection.titleIn', { place: placeLabel })}</h2>
+        <p>{t('typesSection.subtitle')}</p>
 
         <div className="types-container">
           {typeCardsForView.map((group: TypeGroup, index: number) => (
@@ -288,7 +308,7 @@ export default function Romania() {
                   >
                     <img src={type.image} alt={type.name} />
                     <div className="type-name">{type.name}</div>
-                    <span className="more-details">MORE DETAILS</span>
+                    <span className="more-details">{t('typesSection.more')}</span>
                   </Link>
                 ))}
               </div>
@@ -313,7 +333,7 @@ export default function Romania() {
 
       {/* ================= PROPIEDADES ================= */}
       <section className="property-selection">
-        <h2>Exclusive Properties in {isCityKey(selectedCity) ? selectedCity : 'Romania'}</h2>
+        <h2>{t('selection.titleIn', { place: placeLabel })}</h2>
 
         <div className="selection-grid">
           {paginatedProperties.map((prop) => (
@@ -323,8 +343,8 @@ export default function Romania() {
                 <h3>{prop.title}</h3>
                 <p>{prop.price}</p>
                 <div className="property-details">
-                  <span>{prop.bedrooms} beds</span>
-                  <span>{prop.bathrooms} baths</span>
+                  <span>{prop.bedrooms} {t('selection.beds')}</span>
+                  <span>{prop.bathrooms} {t('selection.baths')}</span>
                   <span>{prop.size} m²</span>
                 </div>
               </Link>
@@ -346,23 +366,23 @@ export default function Romania() {
       </section>
 
       <section className="welcome-section">
-        <h2>Discover Your New Home in Romania</h2>
-        <p>We invite you to explore our curated selection of properties across Romania.</p>
+        <h2>{t('welcome.title')}</h2>
+        <p>{t('welcome.text')}</p>
         <img src="/images_home/romania_luxury.jpg" alt="Luxury Romania" />
       </section>
 
       <section className="why-choose-us">
         <div className="why-item">
-          <h3>01. Best Decision</h3>
-          <p>We help you make the best decisions in the Romanian market.</p>
+          <h3>{t('why.best.title')}</h3>
+          <p>{t('why.best.text')}</p>
         </div>
         <div className="why-item">
-          <h3>02. Quality Service</h3>
-          <p>Our service in Romania is characterized by professionalism and dedication.</p>
+          <h3>{t('why.quality.title')}</h3>
+          <p>{t('why.quality.text')}</p>
         </div>
         <div className="why-item">
-          <h3>03. Satisfaction</h3>
-          <p>We ensure customer satisfaction with each transaction.</p>
+          <h3>{t('why.satisfaction.title')}</h3>
+          <p>{t('why.satisfaction.text')}</p>
         </div>
       </section>
     </div>

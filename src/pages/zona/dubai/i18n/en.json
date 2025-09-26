@@ -1,0 +1,49 @@
+{
+  "hero": {
+    "title": "Welcome to Dubai",
+    "subtitle": "Discover luxury properties in the heart of the Emirates."
+  },
+  "search": {
+    "all": "All",
+    "operation": { "buy": "Buy", "rent": "Rent", "rented": "Rented" },
+    "types": {
+      "groupLabel": "UAE, Dubai City",
+      "placeholder": "Type",
+      "noOptions": "No types available",
+      "countSuffix": "selected types",
+      "selectAll": "Select all",
+      "clear": "Clear selection"
+    },
+    "city": "Dubai City",
+    "area": "Select Area",
+    "bedrooms": "Bedrooms",
+    "maxPrice": "Max Price",
+    "searchBtn": "Search"
+  },
+  "zones": {
+    "title": "Exclusive Properties and Unique Spaces",
+    "subtitle": "The best properties in Dubai",
+    "cta": "View Properties"
+  },
+  "typesSection": {
+    "title": "Properties by Type Dubai",
+    "subtitle": "Find the typology that suits your needs",
+    "more": "MORE DETAILS"
+  },
+  "selection": {
+    "title": "Exclusive Properties in Selection Dubai",
+    "beds": "beds",
+    "baths": "baths"
+  },
+  "welcome": {
+    "title": "Find Your Dream Property in Dubai",
+    "text": "We invite you to explore our selection of luxurious residences and investments in the UAE."
+  },
+  "why": {
+    "items": [
+      { "title": "01. Best Decision", "text": "We help you make the best investment decisions in Dubai." },
+      { "title": "02. Quality Service", "text": "We guarantee premium service for our distinguished clients." },
+      { "title": "03. Satisfaction", "text": "Our goal is the complete satisfaction of every client." }
+    ]
+  }
+}

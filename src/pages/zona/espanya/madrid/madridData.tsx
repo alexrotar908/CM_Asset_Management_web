@@ -2,28 +2,20 @@
 import { useEffect, useMemo, useState } from 'react';
 import type { MultiValue } from 'react-select';
 import { supabase } from '../../../../lib/supabaseClient';
+import { useTranslation } from 'react-i18next';
 
-export interface OptionType {
-  value: string;
-  label: string;
-}
-
+export interface OptionType { value: string; label: string; }
 export interface Property {
-  id: string;
-  title: string;
-  price: number;
-  image: string;
-  bedrooms: number;
-  bathrooms: number;
-  size: number;
-  province: string;
-  area?: string;
-  typeSlug?: string;
+  id: string; title: string; price: number; image: string;
+  bedrooms: number; bathrooms: number; size: number;
+  province: string; area?: string; typeSlug?: string;
 }
-
 type AreasMap = Record<string, string[]>;
 
-const FORCED_PROVINCE = 'Madrid';
+const FORCED_PROVINCE_ES = 'Madrid';
+const FORCED_PROVINCE_EN = 'Madrid'; // igual visualmente
+const PROV_MATCH = (p?: string) => (p === 'Madrid');
+
 const zonesDataMadrid = [
   { name: 'Centro', slug: 'centro', image: '/images_espanya/centro_madrid.jpg', link: '/zone/madrid/centro' },
   { name: 'Salamanca', slug: 'salamanca', image: '/images_espanya/salamanca.jpg', link: '/zone/madrid/salamanca' },
@@ -56,15 +48,24 @@ const typeCardsMadrid = [
 ];
 
 export const useMadridLogic = () => {
-  // FILTROS (provincia fija)
+  const { i18n } = useTranslation();
+  const lang: 'es' | 'en' = i18n.language?.startsWith('es') ? 'es' : 'en';
+
+  // columnas por idioma en BD
+  const fPais = `pais_${lang}`;
+  const fCiudad = `ciudad_${lang}`;
+  const fArea = `area_${lang}`;
+  const fTipo = `nombre_${lang}`;
+  const fTitulo = `titulo_${lang}`;
+
+  const FORCED_PROVINCE = lang === 'es' ? FORCED_PROVINCE_ES : FORCED_PROVINCE_EN;
+
   const [selectedProvince, setSelectedProvince] = useState<string>(FORCED_PROVINCE);
   const [selectedTypes, setSelectedTypes] = useState<MultiValue<OptionType>>([]);
   const [searchTerm, setSearchTerm] = useState<string>('');
 
-  // PAGINACIONES
   const [propertyPage, setPropertyPage] = useState<number>(1);
 
-  // ESTADO
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState<string | null>(null);
 
@@ -74,7 +75,6 @@ export const useMadridLogic = () => {
 
   const propertiesPerPage = 3;
 
-  // CARGA BD (solo Madrid)
   useEffect(() => {
     let isMounted = true;
     (async () => {
@@ -82,35 +82,45 @@ export const useMadridLogic = () => {
         setLoading(true);
         setError(null);
 
-        // Áreas para Madrid
+        // Áreas de Madrid (por idioma)
         const { data: zonas, error: zonasErr } = await supabase
           .from('zonas')
-          .select('pais, ciudad, area')
-          .eq('pais', 'España')
-          .eq('ciudad', FORCED_PROVINCE);
+          .select(`${fPais}, ${fCiudad}, ${fArea}`)
+          .eq(fPais, lang === 'es' ? 'España' : 'Spain');
         if (zonasErr) throw zonasErr;
 
         if (isMounted && zonas) {
-          const areas = Array.from(new Set(zonas.map(z => z.area))).sort();
+          const areas = Array.from(
+            new Set(
+              (zonas as any[])
+                .filter(z => PROV_MATCH(String(z?.[fCiudad] ?? '')))
+                .map(z => String(z?.[fArea] ?? '').trim())
+                .filter(Boolean)
+            )
+          ).sort();
           setAreasByProvince({ [FORCED_PROVINCE]: areas });
         }
 
-        // Tipos
+        // Tipos (etiqueta en idioma actual)
         const { data: tipos, error: tiposErr } = await supabase
           .from('tipos')
-          .select('nombre, slug');
+          .select(`id, ${fTipo}, nombre_es, nombre_en, nombre, slug`);
         if (tiposErr) throw tiposErr;
 
         if (isMounted && tipos) {
-          setTypeOptions(tipos.map(t => ({ value: t.nombre, label: t.nombre })) as OptionType[]);
+          const labelOf = (t: any) =>
+            String(t?.[fTipo] ?? t?.nombre_es ?? t?.nombre_en ?? t?.nombre ?? '').trim();
+          setTypeOptions(
+            (tipos as any[]).map(t => ({ value: labelOf(t), label: labelOf(t) })) as OptionType[]
+          );
         }
 
-        // Props SOLO Madrid
+        // Propiedades (de cualquier zona, filtraremos Madrid después)
         const { data: props, error: propsErr } = await supabase
           .from('propiedades')
           .select(`
             id,
-            titulo,
+            ${fTitulo},
             precio,
             dormitorios,
             banos,
@@ -118,7 +128,7 @@ export const useMadridLogic = () => {
             imagen_principal,
             zona_id,
             tipo_id,
-            zonas:zona_id ( ciudad, area ),
+            zonas:zona_id ( ${fCiudad}, ${fArea} ),
             tipos:tipo_id ( slug ),
             imagenes_propiedad!imagenes_propiedad_propiedad_id_fkey ( url, categoria )
           `);
@@ -126,21 +136,21 @@ export const useMadridLogic = () => {
 
         if (isMounted && props) {
           const mapped: Property[] = (props as any[])
-            .filter(p => (p?.zonas?.ciudad ?? '') === FORCED_PROVINCE)
+            .filter(p => PROV_MATCH(String(p?.zonas?.[fCiudad] ?? '')))
             .map((p: any) => {
               const firstGallery =
                 (p.imagenes_propiedad || []).find((im: any) => im.categoria === 'principal') ||
                 (p.imagenes_propiedad || [])[0];
               return {
                 id: p.id,
-                title: p.titulo,
+                title: p[fTitulo] ?? '',
                 price: Number(p.precio),
                 image: p.imagen_principal || firstGallery?.url || '',
                 bedrooms: p.dormitorios,
                 bathrooms: p.banos,
                 size: Number(p.metros_cuadrados),
-                province: p.zonas?.ciudad ?? '',
-                area: p.zonas?.area ?? '',
+                province: p.zonas?.[fCiudad] ?? '',
+                area: p.zonas?.[fArea] ?? '',
                 typeSlug: p.tipos?.slug ?? undefined,
               } as Property;
             });
@@ -155,9 +165,9 @@ export const useMadridLogic = () => {
     })();
 
     return () => { isMounted = false; };
-  }, []);
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [lang, fPais, fCiudad, fArea, fTitulo, fTipo]);
 
-  // PROPIEDADES (filtros + paginación) — provincia ya fija
   const filteredProperties = useMemo(() => {
     const typeSet = new Set((selectedTypes as OptionType[]).map(t => t.value.toLowerCase()));
     return allProperties
@@ -182,25 +192,19 @@ export const useMadridLogic = () => {
   useEffect(() => { setPropertyPage(1); }, [selectedTypes, searchTerm]);
 
   return {
-    // filtros (provincia fija)
-    selectedProvince, setSelectedProvince, // expuesto para compatibilidad, pero fijado a 'Madrid'
+    selectedProvince, setSelectedProvince,
     selectedTypes, setSelectedTypes,
     searchTerm, setSearchTerm,
 
-    // paginación solo propiedades
     propertyPage, setPropertyPage, propertyTotalPages,
 
-    // datos
     propertiesPerPage,
     areasByProvince,
     typeOptions,
     zoneCards: zonesDataMadrid,
     typeCardsForView: typeCardsMadrid,
 
-    // derivados
     paginatedProperties,
-
-    // status
     loading, error,
   };
 };

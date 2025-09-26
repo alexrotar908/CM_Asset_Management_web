@@ -1,0 +1,47 @@
+{
+  "hero": {
+    "title": "Bienvenido a Rumanía",
+    "subtitle": "Explora el encanto de Bucarest y Cluj-Napoca con propiedades exclusivas."
+  },
+  "search": {
+    "all": "Todas",
+    "operation": { "buy": "Comprar", "rent": "Alquilar", "rented": "Alquilado" },
+    "types": {
+      "placeholder": "Tipo",
+      "loading": "Cargando tipos...",
+      "noOptions": "No hay tipos disponibles",
+      "countSuffix": "tipos seleccionados",
+      "selectAll": "Seleccionar todo",
+      "clear": "Quitar selección"
+    },
+    "city": "Ciudad",
+    "area": "Área",
+    "bedrooms": "Dormitorios",
+    "maxPrice": "Precio máximo",
+    "searchBtn": "Buscar"
+  },
+  "zones": {
+    "title": "Propiedades Exclusivas y Espacios Únicos",
+    "subtitleIn": "Las mejores propiedades en {{place}}",
+    "cta": "Ver propiedades"
+  },
+  "typesSection": {
+    "titleIn": "Propiedades por Tipo {{place}}",
+    "subtitle": "Encuentra la tipología que se ajusta a tus necesidades",
+    "more": "MÁS DETALLES"
+  },
+  "selection": {
+    "titleIn": "Propiedades exclusivas en {{place}}",
+    "beds": "dorm.",
+    "baths": "baños"
+  },
+  "welcome": {
+    "title": "Descubre tu nuevo hogar en Rumanía",
+    "text": "Te invitamos a explorar nuestra selección de propiedades en todo el país."
+  },
+  "why": {
+    "best": { "title": "01. Mejor Decisión", "text": "Te ayudamos a tomar las mejores decisiones en el mercado rumano." },
+    "quality": { "title": "02. Servicio de Calidad", "text": "Profesionalidad y dedicación en cada paso." },
+    "satisfaction": { "title": "03. Satisfacción", "text": "Aseguramos la plena satisfacción del cliente." }
+  }
+}

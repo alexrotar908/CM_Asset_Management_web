@@ -1,0 +1,49 @@
+{
+  "hero": {
+    "title": "Bienvenido a Dubái",
+    "subtitle": "Descubre propiedades de lujo en el corazón de los Emiratos."
+  },
+  "search": {
+    "all": "Todas",
+    "operation": { "buy": "Comprar", "rent": "Alquilar", "rented": "Alquilado" },
+    "types": {
+      "groupLabel": "EAU, Ciudad de Dubái",
+      "placeholder": "Tipo",
+      "noOptions": "No hay tipos disponibles",
+      "countSuffix": "tipos seleccionados",
+      "selectAll": "Seleccionar todo",
+      "clear": "Quitar selección"
+    },
+    "city": "Dubái",
+    "area": "Selecciona área",
+    "bedrooms": "Dormitorios",
+    "maxPrice": "Precio máximo",
+    "searchBtn": "Buscar"
+  },
+  "zones": {
+    "title": "Propiedades Exclusivas y Espacios Únicos",
+    "subtitle": "Las mejores propiedades en Dubái",
+    "cta": "Ver propiedades"
+  },
+  "typesSection": {
+    "title": "Propiedades por Tipo Dubái",
+    "subtitle": "Encuentra la tipología que se ajusta a tus necesidades",
+    "more": "MÁS DETALLES"
+  },
+  "selection": {
+    "title": "Propiedades Exclusivas en Selección Dubái",
+    "beds": "dorm.",
+    "baths": "baños"
+  },
+  "welcome": {
+    "title": "Encuentra tu propiedad ideal en Dubái",
+    "text": "Te invitamos a explorar nuestra selección de residencias e inversiones de lujo en EAU."
+  },
+  "why": {
+    "items": [
+      { "title": "01. Mejor decisión", "text": "Te ayudamos a tomar la mejor decisión de inversión en Dubái." },
+      { "title": "02. Servicio de calidad", "text": "Garantizamos un servicio premium para nuestros clientes." },
+      { "title": "03. Satisfacción", "text": "Nuestro objetivo es la completa satisfacción de cada cliente." }
+    ]
+  }
+}

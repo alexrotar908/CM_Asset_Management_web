@@ -1,0 +1,44 @@
+{
+  "hero": {
+    "title": "Welcome to Costa del Sol",
+    "subtitle": "Discover the finest properties in Málaga and the Costa del Sol."
+  },
+  "search": {
+    "operation": { "buy": "Buy", "rent": "Rent", "rented": "Rented" },
+    "types": {
+      "placeholder": "Type",
+      "selectAll": "Select all",
+      "clear": "Clear selection",
+      "searchPlaceholder": "Search type..."
+    },
+    "province": "Malaga",
+    "area": "Area",
+    "bedrooms": "Bedrooms",
+    "maxPrice": "Max Price",
+    "searchBtn": "Search"
+  },
+  "zones": {
+    "title": "Exclusive Properties and Unique Spaces",
+    "subtitle": "The best properties in Malaga",
+    "cta": "View Properties"
+  },
+  "typesSection": {
+    "title": "Properties by Type Malaga",
+    "subtitle": "Find the typology that suits your needs",
+    "more": "MORE DETAILS"
+  },
+  "selection": {
+    "title": "Quality Keys Malaga",
+    "beds": "beds",
+    "baths": "baths"
+  },
+  "welcome": {
+    "title": "Discover Your New Home with CM Asset Management",
+    "text": "We invite you to explore our website and discover the available properties, as well as our specialized services…"
+  },
+  "why": {
+    "one": { "title": "01. Best Decision", "text": "We help you make the best decision…" },
+    "two": { "title": "02. Quality Service", "text": "Quality in service is our fundamental pillar…" },
+    "three": { "title": "03. Satisfaction", "text": "Objective: the satisfaction of our customers…" }
+  }
+}

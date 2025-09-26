@@ -6,6 +6,11 @@ import { useMemo, useState } from 'react';
 import { useDubaiLogic } from './dubaiData';
 import type { OptionType } from './dubaiData';
 
+import { useTranslation } from 'react-i18next';
+// IMPORTA LOS JSON LOCALES DEL NAMESPACE (igual que en espanya)
+import esNs from './i18n/es.json';
+import enNs from './i18n/en.json';
+
 type GroupedOption = { label: string; options: OptionType[] };
 
 type CardProp = {
@@ -22,6 +27,7 @@ type CardProp = {
 };
 
 function PropertyCard({ prop, images }: CardProp) {
+  const { t } = useTranslation('dubai');
   const imgs = images.length ? images : [prop.image];
   const [idx, setIdx] = useState(0);
 
@@ -67,8 +73,8 @@ function PropertyCard({ prop, images }: CardProp) {
         <h3>{prop.title}</h3>
         <p>{prop.price}</p>
         <div className="property-details">
-          <span>{prop.bedrooms} beds</span>
-          <span>{prop.bathrooms} baths</span>
+          <span>{prop.bedrooms} {t('selection.beds')}</span>
+          <span>{prop.bathrooms} {t('selection.baths')}</span>
           <span>{prop.size} m²</span>
         </div>
       </Link>
@@ -77,6 +83,16 @@ function PropertyCard({ prop, images }: CardProp) {
 }
 
 export default function Dubai() {
+  const { t, i18n } = useTranslation('dubai');
+
+  // Cargar el namespace local si aún no está registrado (igual patrón que espanya)
+  if (!i18n.hasResourceBundle('es', 'dubai')) {
+    i18n.addResourceBundle('es', 'dubai', esNs, true, true);
+  }
+  if (!i18n.hasResourceBundle('en', 'dubai')) {
+    i18n.addResourceBundle('en', 'dubai', enNs, true, true);
+  }
+
   const {
     // filtros alineados con /search
     operation, setOperation,
@@ -110,8 +126,8 @@ export default function Dubai() {
 
   /* ===== TYPE: mismo UI que Home/Espanya (agrupado) ===== */
   const typeGroups: GroupedOption[] = useMemo(
-    () => [{ label: 'UAE, Dubai City', options: typeOptions }],
-    [typeOptions]
+    () => [{ label: t('search.types.groupLabel'), options: typeOptions }],
+    [t, typeOptions]
   );
 
   const CustomOption = (props: any) => (
@@ -130,7 +146,9 @@ export default function Dubai() {
         {count === 0 ? (
           <span className="rs-placeholder">{props.selectProps.placeholder}</span>
         ) : (
-          <span className="rs-count">{count} selected types</span>
+          <span className="rs-count">
+            {count} {t('search.types.countSuffix')}
+          </span>
         )}
       </components.ValueContainer>
     );
@@ -142,13 +160,13 @@ export default function Dubai() {
       typeGroups.forEach((g) => g.options.forEach((o) => map.set(o.value, o)));
       setSelectedTypes(Array.from(map.values()));
     };
-    const handleClear = () => setSelectedTypes([]);
+    const handleClear = () => setSelectedTypes([] as any);
 
     return (
       <components.MenuList {...props}>
         <div className="custom-menu-buttons">
-          <button type="button" onClick={handleSelectAll}>Seleccionar todo</button>
-          <button type="button" onClick={handleClear}>Quitar selección</button>
+          <button type="button" onClick={handleSelectAll}>{t('search.types.selectAll')}</button>
+          <button type="button" onClick={handleClear}>{t('search.types.clear')}</button>
         </div>
         {props.children}
       </components.MenuList>
@@ -162,26 +180,28 @@ export default function Dubai() {
   };
 
   const zonesToShow = zonesData.Dubai ?? [];
-  const areas = areasByCity['Dubai City'] ?? [];
+  const areas =
+    areasByCity[t('search.city')] ?? // si en ES el key es "Dubái", intentamos ese
+    areasByCity['Dubai City'] ?? []; // fallback
 
   return (
     <div className="dubai-container">
       <section className="herodub">
         <div className="herodub-content">
-          <h1>Welcome to Dubai</h1>
-          <p>Discover luxury properties in the heart of the Emirates.</p>
+          <h1>{t('hero.title')}</h1>
+          <p>{t('hero.subtitle')}</p>
         </div>
       </section>
 
-      {/* ===== Buscador (clonado del de Home/Espanya) ===== */}
+      {/* ===== Buscador ===== */}
       <section className="search-section">
         <form className="search-form" onSubmit={onSubmit}>
           {/* Operación */}
           <select value={operation} onChange={(e) => setOperation(e.target.value as any)}>
-            <option value="">All</option>
-            <option value="Buy">Buy</option>
-            <option value="Rent">Rent</option>
-            <option value="Rented">Rented</option>
+            <option value="">{t('search.all')}</option>
+            <option value="Buy">{t('search.operation.buy')}</option>
+            <option value="Rent">{t('search.operation.rent')}</option>
+            <option value="Rented">{t('search.operation.rented')}</option>
           </select>
 
           {/* TYPE (agrupado) */}
@@ -189,7 +209,7 @@ export default function Dubai() {
             <Select<OptionType, true, GroupBase<OptionType>>
               options={typeGroups as unknown as GroupBase<OptionType>[]}
               isMulti
-              placeholder="Tipo"
+              placeholder={t('search.types.placeholder')}
               value={selectedTypes as any}
               onChange={setSelectedTypes as any}
               className="type-select"
@@ -204,18 +224,18 @@ export default function Dubai() {
               filterOption={null}
               closeMenuOnSelect={false}
               hideSelectedOptions={false}
-              noOptionsMessage={() => 'No hay tipos disponibles'}
+              noOptionsMessage={() => t('search.types.noOptions')}
             />
           </div>
 
-          {/* Ciudad fija (Dubai City) como en Espanya el “country/province” */}
-          <select value="Dubai City" disabled>
-            <option>Dubai City</option>
+          {/* Ciudad fija (Dubai City) */}
+          <select value={t('search.city')} disabled>
+            <option>{t('search.city')}</option>
           </select>
 
           {/* Área */}
           <select value={selectedArea} onChange={(e) => setSelectedArea(e.target.value)} disabled={areas.length === 0}>
-            <option value="">Select Area</option>
+            <option value="">{t('search.area')}</option>
             {areas.map((a) => (
               <option key={a} value={a}>{a}</option>
             ))}
@@ -223,7 +243,7 @@ export default function Dubai() {
 
           {/* Bedrooms (mínimo) */}
           <select value={bedroomsMin} onChange={(e) => setBedroomsMin(e.target.value)}>
-            <option value="">Bedrooms</option>
+            <option value="">{t('search.bedrooms')}</option>
             <option value="1">1</option><option value="2">2</option>
             <option value="3">3</option><option value="4">4</option>
             <option value="5+">5+</option>
@@ -231,21 +251,21 @@ export default function Dubai() {
 
           {/* Max Price */}
           <select value={maxPrice} onChange={(e) => setMaxPrice(e.target.value)}>
-            <option value="">Max Price</option>
+            <option value="">{t('search.maxPrice')}</option>
             <option>500.000€</option>
             <option>1.000.000€</option>
             <option>5.000.000€</option>
             <option>10.000.000€</option>
           </select>
 
-          <button type="submit">Search</button>
+          <button type="submit">{t('search.searchBtn')}</button>
         </form>
       </section>
 
       {/* ZONAS */}
       <section className="zones-section">
-        <h2>Exclusive Properties and Unique Spaces</h2>
-        <p>The best properties in Dubai</p>
+        <h2>{t('zones.title')}</h2>
+        <p>{t('zones.subtitle')}</p>
 
         <div className="zones-grid">
           {zonesToShow.map((zone) => (
@@ -253,7 +273,7 @@ export default function Dubai() {
               <img src={zone.image} alt={zone.name} />
               <div className="zone-info">
                 <h3>{zone.name}</h3>
-                <button>View Properties</button>
+                <button>{t('zones.cta')}</button>
               </div>
             </Link>
           ))}
@@ -262,8 +282,8 @@ export default function Dubai() {
 
       {/* TYPES */}
       <section className="property-types">
-        <h2>Properties by Type Dubai</h2>
-        <p>Find the typology that suits your needs</p>
+        <h2>{t('typesSection.title')}</h2>
+        <p>{t('typesSection.subtitle')}</p>
 
         <div className="types-container">
           {typeCardsDubaiCity.map((group, index) => {
@@ -279,7 +299,7 @@ export default function Dubai() {
                       <Link key={idx} className="type-card" to={`/tipos/${folder}/${slug}`}>
                         <img src={type.image} alt={type.name} />
                         <div className="type-name">{type.name}</div>
-                        <span className="more-details">MORE DETAILS</span>
+                        <span className="more-details">{t('typesSection.more')}</span>
                       </Link>
                     );
                   })}
@@ -292,7 +312,7 @@ export default function Dubai() {
 
       {/* LISTADO PROPIEDADES */}
       <section className="property-selection">
-        <h2>Exclusive Properties in Selection Dubai</h2>
+        <h2>{t('selection.title')}</h2>
 
         <div className="selection-grid">
           {paginatedProperties.map((prop) => (
@@ -318,24 +338,19 @@ export default function Dubai() {
       </section>
 
       <section className="welcome-section">
-        <h2>Find Your Dream Property in Dubai</h2>
-        <p>We invite you to explore our selection of luxurious residences and investments in the UAE.</p>
+        <h2>{t('welcome.title')}</h2>
+        <p>{t('welcome.text')}</p>
         <img src="/images_home/dubai_luxury.jpg" alt="Luxury Dubai" />
       </section>
 
       <section className="why-choose-us">
-        <div className="why-item">
-          <h3>01. Best Decision</h3>
-          <p>We help you make the best investment decisions in Dubai.</p>
-        </div>
-        <div className="why-item">
-          <h3>02. Quality Service</h3>
-          <p>We guarantee premium service for our distinguished clients.</p>
-        </div>
-        <div className="why-item">
-          <h3>03. Satisfaction</h3>
-          <p>Our goal is the complete satisfaction of every client.</p>
-        </div>
+        {/** Tres items controlados por i18n, igual que espanya */}
+        {(t('why.items', { returnObjects: true }) as Array<{ title: string; text: string }>).map((item, i) => (
+          <div key={i} className="why-item">
+            <h3>{item.title}</h3>
+            <p>{item.text}</p>
+          </div>
+        ))}
       </section>
     </div>
   );

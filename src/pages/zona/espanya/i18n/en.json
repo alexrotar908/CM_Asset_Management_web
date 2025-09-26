@@ -1,0 +1,88 @@
+{
+  "hero": {
+    "title": "Welcome to Spain",
+    "subtitle": "Discover the finest properties in Madrid and the Costa del Sol. We connect you with exclusive homes and investment opportunities tailored to your lifestyle."
+  },
+  "search": {
+    "all": "All",
+    "operation": { "buy": "Buy", "rent": "Rent", "rented": "Rented" },
+    "types": {
+      "placeholder": "Type",
+      "loading": "Loading types...",
+      "noOptions": "No types available",
+      "countSuffix": "selected types",
+      "selectAll": "Select all",
+      "clear": "Clear selection"
+    },
+    "province": "Select Province",
+    "area": "Select Area",
+    "bedrooms": "Bedrooms",
+    "maxPrice": "Max Price",
+    "searchBtn": "Search"
+  },
+  "regions": {
+    "title": "Discover Spain’s Top Destinations",
+    "subtitle": "Explore curated properties in Madrid and the Costa del Sol — two of Spain’s most vibrant real estate markets.",
+    "madrid": { "title": "Madrid", "cta": "View Properties" },
+    "costa": { "title": "Costa del Sol", "cta": "View Properties" }
+  },
+  "zones": {
+    "title": "Exclusive Properties and Unique Spaces",
+    "subtitleIn": "The best properties in {{place}}",
+    "cta": "View Properties"
+  },
+  "typesSection": {
+    "titleIn": "Properties by Type {{place}}",
+    "subtitle": "Find the typology that suits your needs",
+    "more": "MORE DETAILS",
+    "groups": {
+      "madrid": [
+        {
+          "category": "Residential",
+          "description": "Buy a villa, apartment, penthouse or loft. Find your home among our properties."
+        },
+        {
+          "category": "Commercial",
+          "description": "We have the right premises, office, warehouse, hotel or land for your business."
+        }
+      ],
+      "malaga": [
+        {
+          "category": "Residential",
+          "description": "Villas, houses, apartments, penthouses. Find your home on the Costa del Sol."
+        },
+        {
+          "category": "New Development",
+          "description": "Your new home on the Costa del Sol: live the Mediterranean dream."
+        }
+      ]
+    }
+  },
+  "selection": {
+    "titleIn": "Quality Keys {{place}}",
+    "titleDefault": "Quality Keys Selection",
+    "beds": "beds",
+    "baths": "baths"
+  },
+  "welcome": {
+    "title": "Find Your Home in Spain",
+    "text": "From timeless neighborhoods in <strong>Madrid</strong> to the sun-kissed shores of the <strong>Costa del Sol</strong>, explore hand-picked homes tailored to your lifestyle."
+  },
+
+  
+  "why": {
+    "one": {
+      "title": "01. Best Decision",
+      "text": "We help you make the best decision…"
+    },
+    "two": {
+      "title": "02. Quality Service",
+      "text": "Quality in service is our fundamental pillar…"
+    },
+    "three": {
+      "title": "03. Satisfaction",
+      "text": "Objective: the satisfaction of our customers…"
+    }
+  }
+
+}

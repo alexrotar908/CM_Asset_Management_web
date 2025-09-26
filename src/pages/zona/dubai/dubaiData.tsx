@@ -25,13 +25,14 @@ export interface Property {
 
 /* ------------------------ Tipos de BD (mínimos) ------------------------ */
 type TipoJoin = { id: string; slug: string | null };
-type ZonaJoin = { area: string };
+type ZonaJoin = { area: string; area_en?: string | null };
 
-type TipoRow = { id: string; nombre: string; slug: string | null };
-type ZonaRow = { id: string; pais: string | null; ciudad: string; area: string };
+type TipoRow = { id: string; nombre: string | null; nombre_en?: string | null; slug: string | null };
+type ZonaRow = { id: string; pais: string | null; ciudad: string; area: string; area_en?: string | null };
 type PropRow = {
   id: string;
-  titulo: string;
+  titulo: string | null;
+  titulo_en?: string | null;
   descripcion?: string | null;
   precio: number | null;
   dormitorios: number | null;
@@ -41,14 +42,24 @@ type PropRow = {
   tipo_id?: string | null;
   zona_id: string | null;
   // 👇 Supabase puede devolver objeto o array según la relación
-  zonas?: ZonaJoin | ZonaJoin[] | null;
-  tipos?: TipoJoin | TipoJoin[] | null;
+  zonas?: (ZonaJoin) | (ZonaJoin[]) | null;
+  tipos?: (TipoJoin) | (TipoJoin[]) | null;
 };
 type ImgRow = { propiedad_id: string; url: string; categoria: string | null };
 
 /* Utils para joins 1:1 que a veces vienen como array */
 const firstOf = <T,>(v: T | T[] | null | undefined): T | undefined =>
   Array.isArray(v) ? v[0] : v ?? undefined;
+
+const currentLang = (() => {
+  const stored = typeof window !== 'undefined' ? localStorage.getItem('i18nextLng') : null;
+  const l = (stored ?? '').toLowerCase();
+  return l.startsWith('en') ? 'en' : 'es';
+})();
+
+/* Helpers de idioma con fallback */
+const pick = (es?: string | null, en?: string | null) =>
+  (currentLang === 'en' ? (en ?? es) : (es ?? en)) ?? '';
 
 /* Constantes */
 const COUNTRY_UAE = 'UAE';
@@ -88,12 +99,13 @@ export const useDubaiLogic = () => {
     (async () => {
       const { data, error } = await supabase
         .from('tipos')
-        .select('id, nombre, slug')
+        // 👇 añadimos nombre_en para poder traducir
+        .select('id, nombre, nombre_en, slug')
         .order('nombre', { ascending: true });
       if (!error && data) {
         const opts = (data as TipoRow[]).map(t => ({
           value: String(t.id),
-          label: (t.nombre ?? '').trim(),
+          label: pick(t.nombre ?? '', t.nombre_en ?? ''),
         }));
         if (opts.length) setTypeOptions(opts);
       }
@@ -106,7 +118,8 @@ export const useDubaiLogic = () => {
       // 1) Zonas (áreas) de Dubai City
       const { data, error } = await supabase
         .from('zonas')
-        .select('id, pais, ciudad, area')
+        // 👇 añadimos area_en para poder traducir
+        .select('id, pais, ciudad, area, area_en')
         .eq('ciudad', DUBAI_CITY)
         .eq('pais', COUNTRY_UAE)
         .order('area', { ascending: true });
@@ -129,18 +142,21 @@ export const useDubaiLogic = () => {
           .replace(/[^a-z0-9]+/g, '-')
           .replace(/^-+|-+$/g, '');
 
-      // Áreas para el select
+      // Áreas para el select (en el idioma actual)
       const nextAreas: Record<string, string[]> = { [DUBAI_CITY]: [] };
-      for (const z of rows) nextAreas[DUBAI_CITY].push(z.area);
+      for (const z of rows) nextAreas[DUBAI_CITY].push(pick(z.area, z.area_en));
       setAreasByCity(nextAreas);
 
-      // Cards de zonas
-      const dubaiCards = rows.map(z => ({
-        name: z.area,
-        slug: toSlug(z.area),
-        image: areaImage[z.area] ?? '/images_dubai/dubai_fallback.jpg',
-        link: `/zone/dubai/${toSlug(z.area)}`,
-      }));
+      // Cards de zonas (nombre mostrado en el idioma actual)
+      const dubaiCards = rows.map(z => {
+        const display = pick(z.area, z.area_en);
+        return {
+          name: display,
+          slug: toSlug(display),
+          image: areaImage[display] ?? '/images_dubai/dubai_fallback.jpg',
+          link: `/zone/dubai/${toSlug(display)}`,
+        };
+      });
       setZonesData({ Dubai: dubaiCards });
 
       // 2) Propiedades de esas zonas (joins a zona + tipos)
@@ -152,6 +168,7 @@ export const useDubaiLogic = () => {
         .select(`
           id,
           titulo,
+          titulo_en,
           precio,
           dormitorios,
           banos,
@@ -159,7 +176,7 @@ export const useDubaiLogic = () => {
           imagen_principal,
           zona_id,
           tipo_id,
-          zonas:zona_id ( area ),
+          zonas:zona_id ( area, area_en ),
           tipos:tipo_id ( id, slug )
         `)
         .in('zona_id', zoneIds)
@@ -188,7 +205,7 @@ export const useDubaiLogic = () => {
         const k = (c ?? '').toLowerCase();
         const i = order.indexOf(k);
         return i === -1 ? 999 : i;
-        };
+      };
 
       const group: Record<string, string[]> = {};
       (imgs as ImgRow[] | null)?.forEach(({ propiedad_id, url, categoria }) => {
@@ -208,10 +225,10 @@ export const useDubaiLogic = () => {
 
       const fmt = (n: number | null) =>
         typeof n === 'number'
-          ? n.toLocaleString('es-ES', { maximumFractionDigits: 0 }) + ' €'
+          ? n.toLocaleString(currentLang === 'en' ? 'en-US' : 'es-ES', { maximumFractionDigits: 0 }) + ' €'
           : '—';
 
-      // Map a nuestro modelo de UI (uniendo objeto/array de joins)
+      // Map a nuestro modelo de UI (uniendo objeto/array de joins) con idioma
       const mapped: Property[] = (props as unknown as PropRow[]).map((p) => {
         const zona = firstOf(p.zonas);
         const tipo = firstOf(p.tipos);
@@ -220,14 +237,14 @@ export const useDubaiLogic = () => {
 
         return {
           id: p.id,
-          title: p.titulo,
+          title: pick(p.titulo ?? '', p.titulo_en ?? ''),
           price: fmt(p.precio),
           image: cover,
           bedrooms: p.dormitorios ?? 0,
           bathrooms: p.banos ?? 0,
           size: p.metros_cuadrados ?? 0,
           city: DUBAI_CITY,
-          area: zona?.area ?? '',
+          area: pick(zona?.area ?? '', (zona as any)?.area_en ?? ''),
           typeId: p.tipo_id ?? tipo?.id ?? null,
           typeSlug: tipo?.slug ?? null,
         };

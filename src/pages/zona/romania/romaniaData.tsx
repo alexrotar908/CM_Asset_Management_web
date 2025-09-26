@@ -2,6 +2,7 @@
 import { useEffect, useMemo, useState } from 'react';
 import type { MultiValue } from 'react-select';
 import { supabase } from '../../../lib/supabaseClient';
+import { useTranslation } from 'react-i18next';
 
 /* ---------------------- Tipos de datos (UI) ---------------------- */
 export interface OptionType {
@@ -39,6 +40,10 @@ type ImgRow = { propiedad_id: string; url: string; categoria: string | null };
 
 /* ------------------------------ Hook ------------------------------ */
 export const useRomaniaLogic = () => {
+  const { i18n } = useTranslation();
+  const isES = i18n.language?.toLowerCase().startsWith('es');
+  const L = (es: string, en: string) => (isES ? es : en);
+
   /* ===== Filtros (alineados con Home/Search) ===== */
   const [operation, setOperation] = useState<'' | 'Buy' | 'Rent' | 'Rented'>('');
   const [selectedCity, setSelectedCity] = useState<string>(''); // Province equivale a City
@@ -216,7 +221,7 @@ export const useRomaniaLogic = () => {
 
       const fmt = (n: number | null) =>
         typeof n === 'number'
-          ? n.toLocaleString('es-ES', { maximumFractionDigits: 0 }) + ' €'
+          ? n.toLocaleString(isES ? 'es-ES' : 'en-GB', { maximumFractionDigits: 0 }) + ' €'
           : '—';
 
       const mapped: Property[] = (props as PropRow[]).map(p => {
@@ -237,43 +242,43 @@ export const useRomaniaLogic = () => {
       setImagesByProperty(group);
       setAllProperties(mapped);
     })();
-  }, []);
+  }, [isES]); // solo para que el formateo de precio siga el idioma
 
   /* ---------------------- Tarjetas "Types" (estáticas por ciudad) ---------------------- */
   const typeCardsBucharest = [
     {
-      category: 'Luxury Living',
-      description: 'Premium options for upscale living',
+      category: L('Vivir de Lujo', 'Luxury Living'),
+      description: L('Opciones premium para un estilo de vida exclusivo', 'Premium options for upscale living'),
       types: [
-        { name: 'Penthouse',   slug: 'penthouse',   image: '/images_type/type_bucharest/bucharest_penthouse.jpg' },
-        { name: 'Casa',        slug: 'casa',        image: '/images_type/type_bucharest/bucharest_casa.jpg' },
+        { name: 'Penthouse', slug: 'penthouse', image: '/images_type/type_bucharest/bucharest_penthouse.jpg' },
+        { name: L('Casa', 'House'), slug: 'casa', image: '/images_type/type_bucharest/bucharest_casa.jpg' },
       ]
     },
     {
-      category: 'Modern Lifestyle',
-      description: 'Well-situated and stylish',
+      category: L('Estilo Moderno', 'Modern Lifestyle'),
+      description: L('Bien situadas y con estilo', 'Well-situated and stylish'),
       types: [
-        { name: 'Apartamento', slug: 'apartamento', image: '/images_type/type_bucharest/bucharest_apartament.jpg' },
-        { name: 'Ático',       slug: 'atico',       image: '/images_type/type_bucharest/bucharest_atico.jpg' },
+        { name: L('Apartamento', 'Apartment'), slug: 'apartamento', image: '/images_type/type_bucharest/bucharest_apartament.jpg' },
+        { name: L('Ático', 'Attic/Penthouse'), slug: 'atico', image: '/images_type/type_bucharest/bucharest_atico.jpg' },
       ]
     }
   ];
 
   const typeCardsCluj = [
     {
-      category: 'Elegant Options',
-      description: 'Ideal for families and professionals',
+      category: L('Opciones Elegantes', 'Elegant Options'),
+      description: L('Ideal para familias y profesionales', 'Ideal for families and professionals'),
       types: [
-        { name: 'Casa',        slug: 'casa',        image: '/images_type/type_cluj/cluj_casa.jpg' },
-        { name: 'Apartamento', slug: 'apartamento', image: '/images_type/type_cluj/cluj_apartament.jpg' }
+        { name: L('Casa', 'House'), slug: 'casa', image: '/images_type/type_cluj/cluj_casa.jpg' },
+        { name: L('Apartamento', 'Apartment'), slug: 'apartamento', image: '/images_type/type_cluj/cluj_apartament.jpg' }
       ]
     },
     {
-      category: 'City Style',
-      description: 'Practical options in top areas',
+      category: L('Estilo Urbano', 'City Style'),
+      description: L('Opciones prácticas en zonas top', 'Practical options in top areas'),
       types: [
-        { name: 'Ático',       slug: 'atico',       image: '/images_type/type_cluj/cluj_atico.jpg' },
-        { name: 'Penthouse',   slug: 'penthouse',   image: '/images_type/type_cluj/cluj_penthouse.jpg' }
+        { name: L('Ático', 'Attic/Penthouse'), slug: 'atico', image: '/images_type/type_cluj/cluj_atico.jpg' },
+        { name: 'Penthouse', slug: 'penthouse', image: '/images_type/type_cluj/cluj_penthouse.jpg' }
       ]
     }
   ];
@@ -311,7 +316,7 @@ export const useRomaniaLogic = () => {
     if (selectedCity === 'Bucharest') return typeCardsBucharest;
     if (selectedCity === 'Cluj Napoca') return typeCardsCluj;
     return typeCardsCombined;
-  }, [selectedCity]);
+  }, [selectedCity, isES]); // cambia si cambia idioma
 
   const typeCardsForView = useMemo(() => {
     const start = (typePage - 1) * typeCategoriesPerPage;
